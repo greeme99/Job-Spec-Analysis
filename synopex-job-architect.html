@@ -1,0 +1,1522 @@
+<title>시노펙스 직무체계 설계도구</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 좌측 고정 스텝 레일 + 우측 단일 스크롤 캔버스(모바일 1단) / tokens = Workspace DESIGN.md */
+:root{
+  --bg-base:#f8fafc; --bg-surface:#ffffff; --bg-subtle:#f1f5f9; --bg-hover:#e2e8f0;
+  --primary:#0066ff; --primary-hover:#0052cc; --primary-light:#e0edff;
+  --grad-primary:linear-gradient(135deg,#0066ff 0%,#3b82f6 100%);
+  --border:#e8eef6; --border-strong:#e2e8f0;
+  --shadow-card:0 4px 20px -2px rgba(15,23,42,.05),0 2px 6px -1px rgba(15,23,42,.02);
+  --shadow-hover:0 10px 25px -3px rgba(0,102,255,.15);
+  --text-main:#0f172a; --text-body:#334155; --text-muted:#94a3b8; --text-on-primary:#fff;
+  --sky:#38bdf8; --cyan:#06b6d4; --coral:#ff6b4a; --mint:#10b981; --purple:#8b5cf6; --yellow:#facc15;
+  --success:#10b981; --success-bg:rgba(16,185,129,.12);
+  --warning:#f59e0b; --warning-bg:rgba(245,158,11,.12);
+  --danger:#ef4444;  --danger-bg:rgba(239,68,68,.12);
+  --info:#3b82f6;    --info-bg:rgba(59,130,246,.12);
+  --purple-bg:rgba(139,92,246,.12);
+  --font-ui:'Plus Jakarta Sans','Noto Sans KR',-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-mono:'JetBrains Mono','Fira Code',monospace;
+  --r-sm:6px; --r-md:10px; --r-lg:18px; --r-pill:9999px;
+  --t:all .2s cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg-base:#0f172a; --bg-surface:#1e293b; --bg-subtle:#334155; --bg-hover:#475569;
+  --primary:#6366f1; --primary-hover:#4f46e5; --primary-light:rgba(99,102,241,.2);
+  --grad-primary:linear-gradient(135deg,#6366f1 0%,#06b6d4 100%);
+  --border:#334155; --border-strong:#475569;
+  --shadow-card:0 4px 20px -2px rgba(0,0,0,.3); --shadow-hover:0 10px 25px -3px rgba(99,102,241,.3);
+  --text-main:#f8fafc; --text-body:#cbd5e1; --text-muted:#64748b;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg-base:#0f172a; --bg-surface:#1e293b; --bg-subtle:#334155; --bg-hover:#475569;
+  --primary:#6366f1; --primary-hover:#4f46e5; --primary-light:rgba(99,102,241,.2);
+  --grad-primary:linear-gradient(135deg,#6366f1 0%,#06b6d4 100%);
+  --border:#334155; --border-strong:#475569;
+  --shadow-card:0 4px 20px -2px rgba(0,0,0,.3); --shadow-hover:0 10px 25px -3px rgba(99,102,241,.3);
+  --text-main:#f8fafc; --text-body:#cbd5e1; --text-muted:#64748b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-base);color:var(--text-body);font-family:var(--font-ui);font-size:.938rem;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3{color:var(--text-main);text-wrap:balance;margin:0}
+h1{font-size:1.875rem;font-weight:700;line-height:1.2}
+h2{font-size:1.375rem;font-weight:600;line-height:1.3}
+h3{font-size:1.125rem;font-weight:600;line-height:1.4}
+a{color:var(--primary)}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:var(--r-sm)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── Top bar ── */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:14px clamp(16px,1.8vw,48px);background:var(--bg-surface);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.mark{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;flex:0 0 auto;
+  overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,.10);border:1px solid var(--border-strong)}
+.mark img{width:100%;height:100%;object-fit:contain;display:block}
+.brand b{display:block;color:var(--text-main);font-size:1.0625rem;font-weight:700}
+.brand span{display:block;font-size:.813rem;color:var(--text-muted)}
+.topbar .sp{flex:1 1 auto}
+.asof{font-size:.813rem;font-weight:500;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.icon-btn{width:38px;height:38px;border-radius:var(--r-pill);background:var(--bg-subtle);display:grid;place-items:center;transition:var(--t)}
+.icon-btn:hover{background:var(--bg-hover)}
+.icon-btn:active{transform:scale(.97)}
+
+/* ── Shell ── */
+.wrap{max-width:none;margin:0;padding-inline:clamp(16px,1.8vw,48px);padding-block:24px 56px}
+.cols{display:grid;grid-template-columns:clamp(208px,14vw,288px) minmax(0,1fr);gap:clamp(20px,1.6vw,36px);align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+
+/* ── Rail ── */
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 86px);display:flex;flex-direction:column;gap:8px}
+@media (max-width:900px){.rail{position:static;flex-direction:row;overflow-x:auto;padding-bottom:4px}}
+.rail-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);color:var(--text-muted);
+  font-size:.875rem;font-weight:500;transition:var(--t);text-align:left;white-space:nowrap}
+.rail-item:hover{background:var(--bg-subtle)}
+.rail-item .n{width:22px;height:22px;border-radius:var(--r-pill);background:var(--bg-subtle);color:var(--text-muted);
+  display:grid;place-items:center;font-size:.75rem;font-weight:700;flex:0 0 auto}
+.rail-item.on{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(0,102,255,.3)}
+.rail-item.on .n{background:rgba(255,255,255,.22);color:#fff}
+.rail-note{margin-top:8px;padding:12px;border-radius:var(--r-md);background:var(--bg-subtle);font-size:.75rem;color:var(--text-muted);line-height:1.55}
+@media (max-width:900px){.rail-note{display:none}}
+
+/* ── Cards ── */
+.card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-card);padding:22px}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+.sec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--primary)}
+.lead{font-size:.875rem;color:var(--text-muted);margin:6px 0 16px;max-width:110ch}
+
+/* ── Tree ── */
+.tree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.tree{grid-template-columns:1fr}}
+.tnode{padding:14px;border-radius:var(--r-md);background:var(--bg-subtle);border-left:3px solid var(--primary);min-width:0}
+.tnode:nth-child(2){border-left-color:var(--cyan)}
+.tnode:nth-child(3){border-left-color:var(--mint)}
+.tnode .lv{font-size:.6875rem;font-weight:700;letter-spacing:.08em;color:var(--text-muted)}
+.tnode b{display:block;color:var(--text-main);font-size:1rem;margin:3px 0 5px}
+.tnode p{margin:0;font-size:.8125rem;color:var(--text-body)}
+
+/* ── Chips / filters ── */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:7px 14px;border-radius:var(--r-pill);background:var(--bg-subtle);color:var(--text-body);
+  font-size:.8125rem;font-weight:500;transition:var(--t)}
+.chip:hover{background:var(--bg-hover);transform:translateY(-1px)}
+.chip:active{transform:scale(.97)}
+.chip.on{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(0,102,255,.3)}
+
+/* ── Family grid ── */
+.fams{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.fam{text-align:left;padding:16px;border-radius:var(--r-lg);background:var(--bg-surface);border:1px solid var(--border);
+  box-shadow:var(--shadow-card);transition:var(--t);display:flex;flex-direction:column;gap:10px;min-width:0}
+.fam:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:var(--primary)}
+.fam:active{transform:scale(.97)}
+.fam.on{border-color:var(--primary);box-shadow:var(--shadow-hover)}
+
+.fam-top{display:flex;align-items:center;gap:10px}
+.fam-ico{width:44px;height:44px;border-radius:12px;background:var(--bg-subtle);display:grid;place-items:center;font-size:1.125rem;flex:0 0 auto}
+.fam code{font-family:var(--font-mono);font-size:.6875rem;color:var(--text-muted);letter-spacing:.02em}
+.fam b{display:block;color:var(--text-main);font-size:.9375rem;font-weight:600}
+.fam p{margin:0;font-size:.8125rem;color:var(--text-muted);line-height:1.45}
+.fam .foot{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--border);padding-top:9px;margin-top:auto}
+.cnt{font-size:.75rem;font-weight:600;color:var(--text-body);font-variant-numeric:tabular-nums}
+.go{width:30px;height:30px;border-radius:var(--r-pill);background:var(--primary-light);color:var(--primary);display:grid;place-items:center;font-weight:700}
+.fam.on .go{background:var(--primary);color:#fff}
+
+/* ── Table ── */
+.tw{overflow-x:auto;border-radius:var(--r-md);border:1px solid var(--border)}
+table.data{width:100%;border-collapse:collapse;font-size:.875rem;min-width:620px}
+table.data th{position:relative;text-align:left;padding:11px 14px;background:var(--bg-subtle);color:var(--text-body);
+  font-size:.75rem;font-weight:700;letter-spacing:.04em;white-space:nowrap;border-bottom:1px solid var(--border)}
+table.data th button{display:inline-flex;align-items:center;gap:6px;font:inherit;color:inherit}
+.sort{font-size:.8125rem;opacity:.35;color:var(--text-muted)}
+.sort.act{opacity:1;font-weight:700;color:var(--primary)}
+table.data td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.data tbody tr{transition:var(--t)}
+table.data tbody tr:hover{background:var(--bg-subtle)}
+table.data tbody tr.on{background:var(--primary-light)}
+table.data tbody tr:last-child td{border-bottom:0}
+.jid{font-family:var(--font-mono);font-size:.75rem;color:var(--text-muted);white-space:nowrap}
+.jname{color:var(--text-main);font-weight:600}
+.pick{padding:6px 12px;border-radius:var(--r-pill);background:var(--bg-subtle);font-size:.75rem;font-weight:600;transition:var(--t);white-space:nowrap}
+.pick:hover{background:var(--primary);color:#fff}
+tr.on .pick{background:var(--primary);color:#fff}
+.empty{padding:28px 14px;text-align:center;color:var(--text-muted);font-size:.875rem}
+
+/* ── Badges ── */
+.b{display:inline-block;padding:3px 10px;border-radius:var(--r-pill);font-size:.75rem;font-weight:600;white-space:nowrap}
+.b-fact{background:var(--success-bg);color:var(--success)}
+.b-infer{background:var(--info-bg);color:var(--info)}
+.b-check{background:var(--warning-bg);color:var(--warning)}
+.b-mock{background:var(--purple-bg);color:var(--purple)}
+.b-biz{background:var(--bg-subtle);color:var(--text-body)}
+.legend{display:flex;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--text-muted);align-items:center}
+
+/* ── Level + doc switch ── */
+.lv-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.lv{text-align:left;padding:13px;border-radius:var(--r-md);background:var(--bg-subtle);transition:var(--t);min-width:0}
+.lv:hover{background:var(--bg-hover);transform:translateY(-2px)}
+.lv:active{transform:scale(.97)}
+.lv.on{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(0,102,255,.3)}
+.lv .k{font-family:var(--font-mono);font-size:.75rem;font-weight:500;opacity:.75}
+.lv b{display:block;color:var(--text-main);font-size:.9375rem;margin:2px 0 3px}
+.lv.on b{color:#fff}
+.lv small{font-size:.75rem;opacity:.8;line-height:1.4;display:block}
+.seg{display:inline-flex;padding:4px;border-radius:var(--r-pill);background:var(--bg-subtle);gap:4px;flex-wrap:wrap}
+.seg button{padding:9px 20px;border-radius:var(--r-pill);font-size:.875rem;font-weight:600;color:var(--text-muted);transition:var(--t)}
+.seg button.on{background:var(--bg-surface);color:var(--primary);box-shadow:var(--shadow-card)}
+
+/* ── Document ── */
+.doc-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.btn{padding:9px 16px;border-radius:var(--r-pill);background:var(--primary);color:#fff;font-size:.8125rem;font-weight:600;
+  box-shadow:0 4px 14px rgba(0,102,255,.28);transition:var(--t)}
+.btn:hover{background:var(--primary-hover);transform:translateY(-2px)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:var(--bg-subtle);color:var(--text-body);box-shadow:none}
+.btn.ghost:hover{background:var(--bg-hover)}
+.doc{border:1px solid var(--border-strong);border-radius:var(--r-lg);overflow:hidden;background:var(--bg-surface)}
+.doc-head{padding:20px;background:var(--bg-subtle);border-bottom:1px solid var(--border-strong)}
+.doc-head .kind{font-size:.75rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--primary)}
+.doc-head h3{font-size:1.25rem;margin:5px 0 10px}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-top:12px}
+.meta div{min-width:0}
+.meta dt{font-size:.6875rem;font-weight:700;letter-spacing:.06em;color:var(--text-muted);text-transform:uppercase}
+.meta dd{margin:3px 0 0;font-size:.875rem;color:var(--text-main);font-weight:500;word-break:keep-all}
+.doc-body{padding:20px;display:flex;flex-direction:column;gap:22px}
+.fld{min-width:0}
+.fld>h4{margin:0 0 9px;font-size:.9375rem;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.fld>h4 .no{width:22px;height:22px;border-radius:var(--r-sm);background:var(--primary-light);color:var(--primary);
+  display:grid;place-items:center;font-size:.6875rem;font-weight:700;flex:0 0 auto;font-family:var(--font-mono)}
+.fld p{margin:0;font-size:.875rem;line-height:1.6}
+ul.list{margin:0;padding-left:19px;font-size:.875rem;line-height:1.65}
+ul.list li{margin-bottom:4px}
+.tw2{overflow-x:auto}
+table.mini{width:100%;border-collapse:collapse;font-size:.8125rem;min-width:460px}
+table.mini th{text-align:left;padding:8px 11px;background:var(--bg-subtle);color:var(--text-body);font-size:.6875rem;
+  font-weight:700;letter-spacing:.04em;border:1px solid var(--border);white-space:nowrap}
+table.mini td{padding:8px 11px;border:1px solid var(--border);vertical-align:top;line-height:1.55}
+table.mini tr.hl td{background:var(--primary-light);font-weight:600;color:var(--text-main)}
+.ph{display:inline-block;padding:3px 10px;border-radius:var(--r-sm);background:var(--warning-bg);color:var(--warning);
+  font-size:.75rem;font-weight:600}
+.note{padding:13px 15px;border-radius:var(--r-md);background:var(--bg-subtle);border-left:3px solid var(--yellow);
+  font-size:.8125rem;line-height:1.6;color:var(--text-body)}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
+.kpi{padding:13px;border-radius:var(--r-md);background:var(--bg-subtle);min-width:0}
+.kpi .v{font-size:1.125rem;font-weight:700;color:var(--text-main);font-variant-numeric:tabular-nums}
+.kpi .l{font-size:.75rem;color:var(--text-muted);margin-top:2px;line-height:1.4}
+.hint{font-size:.8125rem;color:var(--text-muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--border);max-width:120ch}
+
+
+/* ── Status / matrix / roadmap ── */
+.b-dang{background:var(--danger-bg);color:var(--danger)}
+.b-ing{background:var(--info-bg);color:var(--info)}
+.lvpills{display:inline-flex;gap:3px}
+.lvp{width:21px;height:19px;border-radius:5px;background:var(--bg-subtle);color:var(--text-muted);
+  font-size:.625rem;font-weight:700;display:grid;place-items:center;font-family:var(--font-mono)}
+.lvp.in{background:var(--primary-light);color:var(--primary)}
+.lvp.cur{background:var(--primary);color:#fff}
+table.mtx{width:100%;border-collapse:collapse;font-size:.75rem;min-width:620px}
+table.mtx th{padding:8px 9px;background:var(--bg-subtle);border:1px solid var(--border);font-size:.6875rem;font-weight:700;white-space:nowrap}
+table.mtx th:first-child{text-align:left;min-width:188px}
+table.mtx td{padding:7px 9px;border:1px solid var(--border);text-align:center}
+table.mtx td:first-child{text-align:left}
+table.mtx tbody tr:hover{background:var(--bg-subtle)}
+.cid{font-family:var(--font-mono);font-size:.6875rem;color:var(--text-muted);white-space:nowrap}
+.ctype{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.emp{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.emp .av{width:28px;height:28px;border-radius:var(--r-pill);background:var(--primary-light);color:var(--primary);
+  display:grid;place-items:center;font-size:.625rem;font-weight:700;font-family:var(--font-mono);flex:0 0 auto}
+.emp b{font-size:.8125rem;color:var(--text-main)}
+.emp small{display:block;font-size:.6875rem;color:var(--text-muted);font-weight:400}
+.bar{height:7px;border-radius:var(--r-pill);background:var(--bg-subtle);overflow:hidden;margin-top:7px}
+.bar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--grad-primary)}
+.alert{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:var(--r-md);background:var(--warning-bg);
+  border-left:3px solid var(--warning);font-size:.8125rem;color:var(--text-body)}
+.alert.dang{background:var(--danger-bg);border-left-color:var(--danger)}
+.alert b{color:var(--text-main)}
+
+
+/* ── Rule book ── */
+pre.code{margin:0;padding:16px;border-radius:var(--r-md);background:var(--bg-subtle);border:1px solid var(--border);
+  font-family:var(--font-mono);font-size:.75rem;line-height:1.7;color:var(--text-body);overflow-x:auto;white-space:pre}
+pre.code b{color:var(--primary);font-weight:700}
+pre.code i{color:var(--text-muted);font-style:normal}
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:10px}
+.inp{padding:12px;border-radius:var(--r-md);background:var(--bg-subtle);border-left:3px solid var(--primary);min-width:0}
+.inp b{display:block;font-size:.8125rem;color:var(--text-main)}
+.inp small{font-size:.6875rem;color:var(--text-muted);line-height:1.45;display:block;margin-top:3px}
+.rid{font-family:var(--font-mono);font-size:.75rem;font-weight:700;color:var(--primary);white-space:nowrap}
+
+/* ── Glossary ── */
+.gl-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(282px,1fr));gap:18px}
+.gl-g{min-width:0}
+.gl-g>h3{font-size:.8125rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--primary);
+  padding-bottom:8px;border-bottom:2px solid var(--primary-light);margin-bottom:12px}
+dl.gl{margin:0;display:flex;flex-direction:column;gap:11px}
+dl.gl dt{font-size:.875rem;font-weight:700;color:var(--text-main)}
+dl.gl dt .en{font-family:var(--font-mono);font-size:.75rem;font-weight:500;color:var(--text-muted);margin-left:6px}
+dl.gl dd{margin:3px 0 0;font-size:.8125rem;line-height:1.55;color:var(--text-body)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(8px);background:var(--text-main);
+  color:var(--bg-surface);padding:11px 20px;border-radius:var(--r-pill);font-size:.8125rem;font-weight:600;
+  opacity:0;pointer-events:none;transition:var(--t);z-index:50}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark"><img src="synopex-logo-sm.png" alt="시노펙스 SYNOPEX 로고" width="46" height="46"></div>
+    <div>
+      <b>시노펙스 직무체계 설계도구</b>
+      <span>직무구분 트리 · 레벨별 직무기술서/직무명세서 표준 Template</span>
+    </div>
+  </div>
+  <div class="sp"></div>
+  <div class="asof">자료 기준일 2026-10-05 (KST)</div>
+  <button class="icon-btn" id="theme" aria-label="라이트/다크 테마 전환">◐</button>
+</header>
+
+<div class="wrap">
+  <div class="cols">
+    <nav class="rail" aria-label="작업 단계">
+      <button class="rail-item on" data-go="s1"><span class="n">1</span>대분류 직무구분</button>
+      <button class="rail-item" data-go="s2"><span class="n">2</span>직무 선택</button>
+      <button class="rail-item" data-go="s3"><span class="n">3</span>레벨 · 문서 종류</button>
+      <button class="rail-item" data-go="s4"><span class="n">4</span>표준 Template</button>
+      <button class="rail-item" data-go="s6"><span class="n">5</span>교육체계</button>
+      <button class="rail-item" data-go="s7"><span class="n">6</span>교육·자격 이력</button>
+      <button class="rail-item" data-go="s8"><span class="n">7</span>교육 배정 규칙</button>
+      <button class="rail-item" data-go="s5"><span class="n">※</span>용어 · 약어</button>
+      <div class="rail-note">
+        분류 구조는 <b>사업영역 → 직군(대분류) → 직무 → 세부업무 → 역량</b>입니다.
+        부서·직급·직책은 직무와 별도 축으로 관리합니다.
+      </div>
+    </nav>
+
+    <main class="stack">
+      <section class="card">
+        <div class="sec-head"><span class="eyebrow">Level 정의</span><h2>직무정의 트리</h2></div>
+        <p class="lead">아래 3개 레벨이 이 도구의 뼈대입니다. Level 3의 두 산출물이 바로 직무기술서와 직무명세서입니다.</p>
+        <div class="tree">
+          <div class="tnode"><span class="lv">LEVEL 1</span><b>직무구분</b><p>성격이 비슷한 일을 묶는 큰 틀. 이 도구의 대분류 9개 직군.</p></div>
+          <div class="tnode"><span class="lv">LEVEL 2</span><b>직무정의</b><p>그 직무가 왜 존재하고 무엇을 하는지 한두 문장으로 요약한 목적.</p></div>
+          <div class="tnode"><span class="lv">LEVEL 3</span><b>직무기술 · 직무명세</b><p>직무기술 = 일 중심(무엇을 하는가), 직무명세 = 사람 중심(무엇이 필요한가).</p></div>
+        </div>
+      </section>
+
+      <section class="card" id="s1">
+        <div class="sec-head"><span class="eyebrow">Step 1</span><h2>대분류 직무구분 선택</h2></div>
+        <p class="lead">시노펙스 공식 홈페이지에서 확인된 3개 사업(ELECTRONICS · ENVIRONMENT · HEALTHCARE)과 전사 공통 지원 기능을 기준으로 직군을 구성했습니다. 사업영역으로 먼저 범위를 좁힐 수 있습니다.</p>
+        <div class="chips" id="bizfilter" role="group" aria-label="사업영역 필터"></div>
+        <div class="fams" id="fams"></div>
+      </section>
+
+      <section class="card" id="s2">
+        <div class="sec-head"><span class="eyebrow">Step 2</span><h2>직무 선택</h2></div>
+        <p class="lead" id="s2lead">대분류를 먼저 선택하세요.</p>
+        <div class="tw"><table class="data" id="jobs"><thead></thead><tbody></tbody></table></div>
+        <div class="legend" style="margin-top:12px">
+          <span>근거등급</span>
+          <span class="b b-fact">확인 사실</span><span class="b b-infer">설계 추론</span>
+          <span class="b b-check">사내 확인 필요</span><span class="b b-mock">가상 예시</span>
+        </div>
+      </section>
+
+      <section class="card" id="s3">
+        <div class="sec-head"><span class="eyebrow">Step 3</span><h2>레벨 · 문서 종류</h2></div>
+        <p class="lead">레벨은 숙련수준입니다. 회사 직급·직책과 자동으로 동일시하지 않으며, NCS 수준도 참고 범위로만 표시합니다.</p>
+        <div class="lv-row" id="levels"></div>
+        <div style="margin-top:18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div class="seg" id="kind" role="group" aria-label="문서 종류">
+            <button data-kind="jd" class="on">직무기술서</button>
+            <button data-kind="js">직무명세서</button>
+          </div>
+          <span style="font-size:.8125rem;color:var(--text-muted)">직무기술서는 수행 내용과 기준, 직무명세서는 요구 자격과 역량을 담습니다.</span>
+        </div>
+      </section>
+
+      <section class="card" id="s4">
+        <div class="sec-head"><span class="eyebrow">Step 4</span><h2>표준 Template</h2></div>
+        <div class="doc-bar">
+          <button class="btn" id="copy">Markdown 복사</button>
+          <button class="btn ghost" id="swap">다른 문서로 전환</button>
+          <span class="legend"><span class="b b-check">사내 확인 필요</span><span>표시는 공개자료로 확정할 수 없어 사내 확인이 필요한 칸입니다.</span></span>
+        </div>
+        <div id="out"></div>
+      </section>
+
+
+      <section class="card" id="s6">
+        <div class="sec-head"><span class="eyebrow">Step 5</span><h2>직무별 교육체계</h2></div>
+        <p class="lead" id="s6lead">직무를 선택하면 해당 직무에 배정되는 교육과정과 레벨별 로드맵이 생성됩니다.</p>
+        <div id="eduOut"></div>
+      </section>
+
+      <section class="card" id="s7">
+        <div class="sec-head"><span class="eyebrow">Step 6</span><h2>교육 · 자격 이력관리</h2></div>
+        <p class="lead">직원 데이터는 <span class="b b-mock">가상 예시</span> 입니다. 실제 인사·교육 이력으로 교체하면 동일한 화면과 계산식이 그대로 적용됩니다.</p>
+        <div id="histOut"></div>
+      </section>
+
+
+      <section class="card" id="s8">
+        <div class="sec-head"><span class="eyebrow">Step 7</span><h2>교육 배정 규칙</h2></div>
+        <p class="lead">필수교육은 직급 하나로 결정하지 않습니다. 아래 8개 입력을 모두 보고 규칙에 따라 배정하며, 규칙에는 버전과 적용일을 둡니다.</p>
+
+        <h3 style="margin:18px 0 10px;font-size:1rem">배정 입력</h3>
+        <div class="inputs">
+          <div class="inp"><b>사업장</b><small>법정 교육의 적용 범위와 선임 요건이 사업장 단위로 달라집니다</small></div>
+          <div class="inp"><b>부서</b><small>조직 단위. 직무와 별도 축으로 관리합니다</small></div>
+          <div class="inp"><b>담당 직무</b><small>복수 가능. 겸직은 합집합으로 산출합니다</small></div>
+          <div class="inp"><b>직책 · 역할</b><small>직책·리더십 과정의 배정 기준</small></div>
+          <div class="inp"><b>숙련수준</b><small>L1~L5. 직급과 자동으로 동일시하지 않습니다</small></div>
+          <div class="inp"><b>배치일</b><small>기한 계산의 기산일</small></div>
+          <div class="inp"><b>기존 이력</b><small>인정기간 내 수료·평가 결과</small></div>
+          <div class="inp"><b>자격 유효성</b><small>취득일·유효기간·갱신 여부</small></div>
+        </div>
+
+        <h3 style="margin:26px 0 10px;font-size:1rem">규칙표 <span style="font-size:.75rem;font-weight:500;color:var(--text-muted)">· 규칙 버전 v1.0 · 적용일 2026-10-06 (KST)</span></h3>
+        <div class="tw"><table class="data" style="min-width:1000px"><thead><tr>
+          <th>규칙 ID</th><th>상황</th><th>배정 처리</th><th>기한</th><th>기존 이력 인정</th><th>승인</th>
+        </tr></thead><tbody><tr><td class="rid">R-01</td><td><b style="color:var(--text-main)">신규 입사</b></td><td>전사 공통 과정 전체 + 배치 직무의 L1 필수 과정 전체를 배정한다.</td><td>공통 입사일+30일 · 직무 필수 배치일+90일 · OJT 배치일+180일</td><td>해당 없음</td><td>HRD 담당</td></tr><tr><td class="rid">R-02</td><td><b style="color:var(--text-main)">신규 직무배치 · 전보</b></td><td>신규 직무의 필수 과정 중 <b>미이수분만</b> 배정한다. 이전 직무 전용 과정의 미이수 배정은 종료 처리한다.</td><td>배치일+90일</td><td>인정기간 내 동일 과정 수료는 인정</td><td>HRD 담당</td></tr><tr><td class="rid">R-03</td><td><b style="color:var(--text-main)">겸직 · 복수 직무</b></td><td>두 직무의 필수 과정을 <b>합집합</b>으로 산출하고 과정 ID 기준으로 중복을 제거한다. 연간 교육시간 상한을 넘으면 기한을 분기 단위로 분산한다.</td><td>직무별 기한 중 <b>빠른 날짜</b></td><td>상위 직무 수료분 공통 인정</td><td>HRD 담당 + 양측 팀장</td></tr><tr><td class="rid">R-04</td><td><b style="color:var(--text-main)">승진 · 직책 변경</b></td><td>직책·리더십 과정을 발령일 기준으로 배정한다. 숙련수준 상승은 실무평가 통과 시점에 상위 레벨 과정을 배정한다.</td><td>발령일+90일</td><td>직책 교육은 재이수 대상 아님</td><td>HRD 담당</td></tr><tr><td class="rid">R-05</td><td><b style="color:var(--text-main)">선수조건 미충족</b></td><td>후속 과정을 즉시 배정하지 않고 <b>대기</b> 상태로 둔다. 선수 과정 수료가 확인되면 자동으로 배정 상태로 전환한다.</td><td>선수 수료일+90일</td><td>—</td><td>자동</td></tr><tr><td class="rid">R-06</td><td><b style="color:var(--text-main)">대체 · 동등과정</b></td><td>사전 등록된 동등과정 수료는 인정한다. 외부 자격 취득은 해당 과정 면제로 처리하되 <b>자격 유효기간을 따른다</b>.</td><td>원 과정 기한 승계</td><td>동등과정 목록에 등록된 건만</td><td>과정 담당자</td></tr><tr><td class="rid">R-07</td><td><b style="color:var(--text-main)">기존 수료 인정</b></td><td>과정별 <b>인정기간 내</b> 수료만 인정한다. 인정기간이 지난 수료는 재이수 대상으로 전환한다.</td><td>재이수는 전환일+90일</td><td>인정기간 경과분 불인정</td><td>자동</td></tr><tr><td class="rid">R-08</td><td><b style="color:var(--text-main)">중복 배정 방지</b></td><td>(직원, 과정 ID, 유효 배정) 조합에 유일 제약을 둔다. 유효 배정이 이미 있으면 새 배정을 생성하지 않는다.</td><td>기존 기한 유지</td><td>—</td><td>자동</td></tr><tr><td class="rid">R-09</td><td><b style="color:var(--text-main)">면제</b></td><td>승인권자 승인 + 사유 + 증빙이 모두 있어야 한다. 면제 건은 <b>분모에서 제외</b>하고 '해당 없음'으로 집계한다.</td><td>기한 없음</td><td>—</td><td>부문장 + HRD 책임자</td></tr><tr><td class="rid">R-10</td><td><b style="color:var(--text-main)">유예</b></td><td>기한만 연장한다. <b>분모에는 남기고</b> '유예' 상태로 집계한다. 사유·유예기간·승인자를 기록한다.</td><td>승인된 연장일</td><td>—</td><td>팀장 + HRD 담당</td></tr><tr><td class="rid">R-11</td><td><b style="color:var(--text-main)">자격 만료 · 갱신</b></td><td>만료 90일 전에 갱신 과정을 자동 배정한다. 법정 선임 자격은 만료 시 <b>선임 공백 알림</b>을 즉시 발생시킨다.</td><td>자격 만료일</td><td>갱신 전 자격은 만료일까지 유효</td><td>자동 + 안전환경 책임자</td></tr><tr><td class="rid">R-12</td><td><b style="color:var(--text-main)">휴직 · 복직 · 퇴직</b></td><td>휴직 기간만큼 기한을 자동 연장하고 복직일 기준으로 재계산한다. 퇴직 시 미이수 배정은 '해당 없음'으로 종료한다.</td><td>복직일 + 잔여일수</td><td>휴직 전 수료 유지</td><td>자동</td></tr><tr><td class="rid">R-13</td><td><b style="color:var(--text-main)">교육규칙 개정</b></td><td>새 규칙 버전은 <b>적용일 이후 배정에만</b> 적용한다. 과거 배정의 근거·기한·결과는 덮어쓰지 않고 보존한다.</td><td>개정 전 배정은 기존 기한 유지</td><td>—</td><td>HRD 책임자</td></tr><tr><td class="rid">R-14</td><td><b style="color:var(--text-main)">결측값 처리</b></td><td>'해당 없음'(적용 대상 아님)과 '미확인'(데이터 없음)을 구분한다. 미확인은 분자·분모 모두에서 제외하고 별도 집계한다.</td><td>—</td><td>—</td><td>자동</td></tr></tbody></table></div>
+
+        <h3 style="margin:26px 0 10px;font-size:1rem">배정 의사코드</h3>
+        <pre class="code"><b>FUNCTION</b> 배정(직원 e, 기준일 d, 규칙버전 v):
+  대상 ← []
+  <b>FOR</b> 각 담당직무 j <b>IN</b> e.직무목록:              <i>// R-03 겸직 = 복수 직무 합집합</i>
+    <b>FOR</b> 각 과정 c <b>IN</b> 교육과정(j, e.숙련수준, e.직책):
+      <b>IF</b> 유효배정_존재(e, c):        <b>CONTINUE</b>      <i>// R-08 중복 배정 방지</i>
+      <b>IF</b> 면제승인(e, c):             상태 ← 해당없음  <b>CONTINUE</b>   <i>// R-09 분모 제외</i>
+      <b>IF</b> 동등과정_수료(e, c) <b>OR</b> 외부자격_유효(e, c):
+                                        상태 ← 인정      <b>CONTINUE</b>   <i>// R-06</i>
+      <b>IF</b> 기존수료(e, c) <b>AND</b> 경과일(e, c) ≤ c.인정기간:
+                                        상태 ← 수료인정  <b>CONTINUE</b>   <i>// R-07</i>
+      <b>IF</b> c.선수과정 <b>AND NOT</b> 수료(e, c.선수과정):
+                                        상태 ← 대기      <b>CONTINUE</b>   <i>// R-05</i>
+
+      기한 ← 기산일(e, c) + c.기한일수                    <i>// R-01 / R-02 / R-04</i>
+      <b>IF</b> e.휴직중:  기한 ← 기한 + e.휴직일수                 <i>// R-12</i>
+      <b>IF</b> 유예승인(e, c): 기한 ← 승인된_연장일                <i>// R-10</i>
+      대상 += 배정{직원 e, 과정 c, 기한, <b>규칙버전 v</b>, 생성일 d, 근거}
+  <b>RETURN</b> 대상
+
+<b>FUNCTION</b> 갱신점검(직원 e, 기준일 d):                        <i>// R-11</i>
+  <b>FOR</b> 각 자격 q <b>IN</b> e.자격목록:
+    <b>IF</b> q.만료일 - d ≤ 90일:  배정(갱신과정(q), 기한 = q.만료일)
+    <b>IF</b> q.법정선임 <b>AND</b> q.만료일 &lt; d:  알림(<b>선임 공백</b>, 즉시)
+
+<b>FUNCTION</b> 규칙개정(신규버전 v2, 적용일 t):                   <i>// R-13</i>
+  기존 배정은 <b>그대로 보존</b> (근거·기한·결과 덮어쓰기 금지)
+  t 이후 신규 배정에만 v2 적용</pre>
+
+        <h3 style="margin:26px 0 10px;font-size:1rem">상태별 집계 처리</h3>
+        <div class="tw2"><table class="mini"><thead><tr>
+          <th style="width:96px">상태</th><th style="width:26%">의미</th><th style="width:88px">분모 포함</th><th style="width:88px">분자 포함</th><th>처리 원칙</th>
+        </tr></thead><tbody><tr><td><b style="color:var(--text-main)">배정</b></td><td>미수강 상태</td><td>포함</td><td>미포함</td><td>기한 경과 시 '기한 초과'로 전환</td></tr><tr><td><b style="color:var(--text-main)">수강중</b></td><td>진행 중</td><td>포함</td><td>미포함</td><td>기한 내 수료 여부로 판정</td></tr><tr><td><b style="color:var(--text-main)">수료</b></td><td>교육 수료</td><td>포함</td><td>포함</td><td>실무역량 충족 판정은 하지 않음</td></tr><tr><td><b style="color:var(--text-main)">평가합격</b></td><td>평가 통과</td><td>포함</td><td>포함</td><td>독립수행 승인의 선행 조건</td></tr><tr><td><b style="color:var(--text-main)">유예</b></td><td>기한 연장 승인</td><td>포함</td><td>미포함</td><td>승인 사유·기간·승인자 기록</td></tr><tr><td><b style="color:var(--text-main)">기한 초과</b></td><td>기한 경과 미이수</td><td>포함</td><td>미포함</td><td>즉시 알림 대상</td></tr><tr><td><b style="color:var(--text-main)">해당 없음</b></td><td>면제 · 적용 대상 아님</td><td><b>미포함</b></td><td>미포함</td><td>분모가 0이면 비율 대신 '해당 없음' 표시</td></tr><tr><td><b style="color:var(--text-main)">미확인</b></td><td>데이터 없음</td><td><b>미포함</b></td><td>미포함</td><td>0점으로 처리하지 않고 별도 집계</td></tr></tbody></table></div>
+
+        <div class="note" style="margin-top:18px"><b>불변 원칙</b> · 규칙 개정으로 과거 교육결과를 덮어쓰지 않습니다. 직원별로 <b>배정 당시의 규칙 버전 · 근거 · 기한</b>을 함께 보존하여 추적할 수 있게 합니다.
+          교육 수료만으로 실무역량 충족을 판정하지 않으며, 수료 · 평가합격 · 자격취득 · 독립수행 승인은 서로 다른 상태입니다.</div>
+      </section>
+
+      <section class="card" id="s5">
+        <div class="sec-head"><span class="eyebrow">Reference</span><h2>용어 · 약어 설명</h2></div>
+        <p class="lead">이 도구와 생성 문서에 쓰인 용어입니다. 영문 약어는 원문 표기를 유지합니다.</p>
+        <div class="gl-groups">
+
+          <div class="gl-g">
+            <h3>직무체계</h3>
+            <dl class="gl">
+              <dt>직무구분<span class="en">Job Classification</span></dt>
+              <dd>회사의 여러 일을 성격이 비슷한 것끼리 묶는 큰 틀. 이 도구의 Level 1이며 9개 직군이 여기에 해당합니다.</dd>
+              <dt>직군<span class="en">Job Family</span></dt>
+              <dd>직무구분과 같은 층위에서 쓰는 말. 대분류 단위의 직무 묶음입니다.</dd>
+              <dt>직무정의<span class="en">Job Definition</span></dt>
+              <dd>그 직무가 왜 존재하고 무엇을 하는지 한두 문장으로 요약한 목적. Level 2입니다.</dd>
+              <dt>직무기술서<span class="en">JD · Job Description</span></dt>
+              <dd>직무를 맡은 사람이 실제로 해야 하는 업무 내용과 책임을 적은 문서. <b>일 중심</b>입니다.</dd>
+              <dt>직무명세서<span class="en">JS · Job Specification</span></dt>
+              <dd>그 일을 해내기 위해 사람에게 요구되는 지식·기술·자격을 적은 문서. <b>사람 중심</b>입니다.</dd>
+              <dt>숙련수준</dt>
+              <dd>실제 수행능력 단계(L1~L5). 회사의 인사 등급인 <b>직급</b>, 관리 책임인 <b>직책</b>, 조직 단위인 <b>부서</b>와는 모두 별개의 축입니다.</dd>
+              <dt>근거등급</dt>
+              <dd>정보의 출처 신뢰도. 확인 사실(공식 자료에서 직접 확인) · 설계 추론(사업 특성에서 도출) · 사내 확인 필요 · 가상 예시로 구분합니다.</dd>
+            </dl>
+          </div>
+
+          <div class="gl-g">
+            <h3>역량 · 교육</h3>
+            <dl class="gl">
+              <dt>NCS<span class="en">National Competency Standards</span></dt>
+              <dd>국가직무능력표준. 산업 현장의 직무 수행에 필요한 능력을 국가가 표준화한 체계로, 대분류 24개에서 세분류까지 내려갑니다.</dd>
+              <dt>능력단위</dt>
+              <dd>NCS 세분류를 구성하는 교육·평가의 최소 단위. 분류번호와 수준(1~8)을 가집니다.</dd>
+              <dt>수행준거</dt>
+              <dd>능력단위를 수행했다고 인정하기 위한 판단 기준. K·S·A를 도출하는 근거가 됩니다.</dd>
+              <dt>K·S·A<span class="en">Knowledge, Skill, Attitude</span></dt>
+              <dd>필요지식 · 필요기술 · 직무수행태도. 직무명세서의 핵심 구성 요소입니다.</dd>
+              <dt>HRD / L&amp;D<span class="en">Human Resource Development / Learning &amp; Development</span></dt>
+              <dd>인재 개발과 교육 훈련 기능. 직무기술서를 교육 요구조사 결과로 활용합니다.</dd>
+              <dt>CDP<span class="en">Career Development Path</span></dt>
+              <dd>경력 개발 경로. 상위 레벨 직무로 성장하는 단계와 필요 교육을 설계합니다.</dd>
+              <dt>OJT<span class="en">On-the-Job Training</span></dt>
+              <dd>현업에서 지도자를 두고 수행하는 실무 훈련. 독립수행 승인의 선행 단계입니다.</dd>
+              <dt>SME<span class="en">Subject Matter Expert</span></dt>
+              <dd>직무 전문가. 직무 문서와 NCS 매핑의 내용 타당성을 검토·승인합니다.</dd>
+              <dt>ADDIE</dt>
+              <dd>교육과정 설계 모형. 분석 · 설계 · 개발 · 운영 · 평가의 5단계입니다.</dd>
+            </dl>
+          </div>
+
+          <div class="gl-g">
+            <h3>업무 운영</h3>
+            <dl class="gl">
+              <dt>KPI<span class="en">Key Performance Indicator</span></dt>
+              <dd>핵심성과지표. 정의 · 분자 · 분모 · 기간 · 데이터 출처를 확정해야 의미가 있습니다.</dd>
+              <dt>RACI</dt>
+              <dd>업무 책임 구분. Responsible(실행) · Accountable(최종책임) · Consulted(협의) · Informed(통보)입니다.</dd>
+              <dt>SOP<span class="en">Standard Operating Procedure</span></dt>
+              <dd>표준작업절차서. 직무기술서가 참조하는 실행 수준의 문서입니다.</dd>
+              <dt>CAPA<span class="en">Corrective And Preventive Action</span></dt>
+              <dd>시정 및 예방조치. 부적합의 근본원인을 제거하고 재발을 막는 품질 활동입니다.</dd>
+              <dt>SPC / Cpk</dt>
+              <dd>통계적 공정관리와 공정능력지수. 공정이 규격 안에서 안정적으로 유지되는지를 수치로 판단합니다.</dd>
+              <dt>4M</dt>
+              <dd>Man · Machine · Material · Method. 공정 변경 시 영향 요인을 구분해 관리하는 축입니다.</dd>
+              <dt>AQL<span class="en">Acceptable Quality Limit</span></dt>
+              <dd>합격품질수준. 샘플링 검사에서 합격 판정의 기준이 됩니다.</dd>
+              <dt>MTBF / ppm</dt>
+              <dd>평균 고장 간격(설비 신뢰성 지표) / 백만분율(불량률 단위).</dd>
+              <dt>DOE / RCA</dt>
+              <dd>통계적 실험설계 / 근본원인분석.</dd>
+              <dt>KST</dt>
+              <dd>한국 표준시(UTC+9). 이 도구의 모든 날짜·시각 표기 기준입니다.</dd>
+            </dl>
+          </div>
+
+          <div class="gl-g">
+            <h3>시노펙스 사업 · 기술</h3>
+            <dl class="gl">
+              <dt>FPCB<span class="en">Flexible Printed Circuit Board</span></dt>
+              <dd>연성회로기판. 휘어지는 전자 회로 기판으로 시노펙스 ELECTRONICS 사업의 주력 제품입니다.</dd>
+              <dt>PBA / EMS</dt>
+              <dd>Printed Board Assembly(기판 실장 조립) / Electronics Manufacturing Services(전자제품 위탁 생산 서비스).</dd>
+              <dt>PTFE / PVDF</dt>
+              <dd>Polytetrafluoroethylene / Polyvinylidene Fluoride. 분리막·필터에 쓰이는 고분자 소재입니다.</dd>
+              <dt>MF / UF / NF / RO</dt>
+              <dd>정밀여과 · 한외여과 · 나노여과 · 역삼투. 거르는 입자 크기 순서로 나뉘는 막여과 방식입니다.</dd>
+              <dt>MBR<span class="en">Membrane Bio-Reactor</span></dt>
+              <dd>분리막 생물반응조. 하폐수 처리에서 생물 처리와 막여과를 결합한 공정입니다.</dd>
+              <dt>HD / CRRT</dt>
+              <dd>Hemodialysis(혈액투석) / Continuous Renal Replacement Therapy(지속적 신대체요법, 중환자용).</dd>
+              <dt>혈액여과기</dt>
+              <dd>인공신장기용 투석필터. 중공사막으로 환자 혈액의 노폐물을 거르는 의료기기입니다.</dd>
+              <dt>중공사막</dt>
+              <dd>속이 빈 실 모양의 분리막. 혈액여과기와 수처리 모듈의 핵심 소재입니다.</dd>
+            </dl>
+          </div>
+
+          <div class="gl-g">
+            <h3>규제 · 인증</h3>
+            <dl class="gl">
+              <dt>CE MDR<span class="en">Medical Device Regulation</span></dt>
+              <dd>유럽 의료기기 규정. 유럽 시장 진입을 위한 인증 요구사항 체계입니다.</dd>
+              <dt>DHF<span class="en">Design History File</span></dt>
+              <dd>설계이력파일. 의료기기 설계 과정의 근거를 모아 보존하는 문서 묶음입니다.</dd>
+              <dt>CER / PMS</dt>
+              <dd>Clinical Evaluation Report(임상평가보고서) / Post-Market Surveillance(시판 후 사후관리).</dd>
+              <dt>IRB<span class="en">Institutional Review Board</span></dt>
+              <dd>임상시험윤리위원회. 환자 임상시험 수행 전 승인을 받아야 하는 기구입니다.</dd>
+              <dt>CRO<span class="en">Contract Research Organization</span></dt>
+              <dd>임상시험 수탁기관. 임상 설계·운영을 위탁 수행합니다.</dd>
+              <dt>GMP<span class="en">Good Manufacturing Practice</span></dt>
+              <dd>우수 제조 및 품질관리 기준. 의료기기·의약품 제조에 적용됩니다.</dd>
+              <dt>ISO 9001 / 13485 / 14971 / 10993</dt>
+              <dd>품질경영시스템 / 의료기기 품질경영시스템 / 의료기기 위험관리 / 생물학적 안전성 평가 규격입니다.</dd>
+              <dt>IATF 16949</dt>
+              <dd>자동차 산업 품질경영시스템 규격. 전장부품 공급에 요구됩니다.</dd>
+              <dt>SQ<span class="en">Supplier Quality</span></dt>
+              <dd>완성차 업체의 공급자 품질 인증. 획득해야 정식 부품 공급 자격이 생깁니다.</dd>
+              <dt>RoHS / REACH</dt>
+              <dd>유해물질 제한 지침 / 화학물질 등록·평가 규정. 자재 구매 시 확인이 필요합니다.</dd>
+              <dt>BOT<span class="en">Build-Operate-Transfer</span></dt>
+              <dd>시공 후 일정 기간 운영하고 발주처에 이전하는 사업 방식. 해외 정수장 사업에 적용됩니다.</dd>
+            </dl>
+          </div>
+
+          <div class="gl-g">
+            <h3>시스템</h3>
+            <dl class="gl">
+              <dt>AX<span class="en">AI Transformation</span></dt>
+              <dd>AI 기술로 업무와 제품을 전환하는 활동. 데이터·보안 요구사항과 함께 관리합니다.</dd>
+              <dt>MES / ERP</dt>
+              <dd>Manufacturing Execution System(제조실행시스템) / Enterprise Resource Planning(전사자원관리).</dd>
+              <dt>BOM / MRP</dt>
+              <dd>Bill of Materials(자재명세서) / Material Requirement Planning(자재소요계획).</dd>
+              <dt>CRM</dt>
+              <dd>Customer Relationship Management. 고객·영업 기회 이력을 관리하는 체계입니다.</dd>
+              <dt>SCM</dt>
+              <dd>Supply Chain Management. 구매부터 물류까지 공급망 전체를 관리합니다.</dd>
+            </dl>
+          </div>
+
+        </div>
+        <p class="hint">출처 · 사업/제품 용어는 시노펙스 공식 홈페이지(synopex.com)와 인사포털, NCS 용어는 국가직무능력표준 포털(ncs.go.kr) 기준입니다. 자료 기준일 2026-10-05 (KST).</p>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ===== 사업영역 (공식 홈페이지 GNB 확인) ===== */
+const BIZ={
+  EL:{n:'ELECTRONICS · 전자부품',s:'FPCB · PBA · EMS · 검사기 · New Electronic Parts',c:'var(--sky)'},
+  FM:{n:'ENVIRONMENT · 필터·멤브레인',s:'PTFE 필터 · Membrane(UF) · Mask Filter · Hydrogen&Bio · Water System',c:'var(--mint)'},
+  BM:{n:'HEALTHCARE · 바이오·의료',s:'Hemodialysis · CRRT · Dialysis Concentrates',c:'var(--coral)'},
+  CO:{n:'전사 공통',s:'3개 사업 공통 지원 기능',c:'var(--purple)'}
+};
+/* ===== 대분류 직무구분 (직군) ===== */
+const FAMS=[
+ {id:'JF-RD',n:'연구개발·설계',ic:'◈',c:'var(--sky)',d:'제품·소재·공정·장비의 설계와 선행개발'},
+ {id:'JF-PR',n:'생산·공정·설비',ic:'▣',c:'var(--primary)',d:'양산 공정 운영, 설비 보전, 생산계획'},
+ {id:'JF-QA',n:'품질·시험·검사',ic:'✓',c:'var(--mint)',d:'품질경영시스템, 검사, 신뢰성·밸리데이션'},
+ {id:'JF-SC',n:'구매·자재·SCM·물류',ic:'⇄',c:'var(--cyan)',d:'구매, 협력사, 재고, 수출입 물류'},
+ {id:'JF-SL',n:'영업·기술영업·고객지원',ic:'◉',c:'var(--coral)',d:'국내외 영업, 기술영업, 프로젝트 수주, CS'},
+ {id:'JF-RA',n:'인허가·규제·문서관리',ic:'§',c:'var(--purple)',d:'의료기기 허가, 제품인증, 기술문서 관리'},
+ {id:'JF-ES',n:'환경·안전',ic:'⚑',c:'var(--yellow)',d:'법정 선임, 안전보건, 환경설비, 탄소중립'},
+ {id:'JF-MG',n:'경영기획·재무·인사·총무',ic:'◱',c:'var(--text-muted)',d:'기획, 재무, IR·공시, 인사·HRD, 총무'},
+ {id:'JF-IT',n:'IT·정보보안·데이터·AX',ic:'⌘',c:'var(--info)',d:'인프라, 보안, MES·ERP, AI·데이터 전환'}
+];
+/* ===== 숙련수준 레벨 ===== */
+const LV=[
+ {k:'L1',n:'입문',d:'지도 하 표준업무 보조',ncs:'2~3'},
+ {k:'L2',n:'수행',d:'표준업무 단독 수행',ncs:'3~4'},
+ {k:'L3',n:'숙련',d:'예외처리·개선·OJT 지도',ncs:'4~5'},
+ {k:'L4',n:'전문',d:'기준 수립·과제 리드',ncs:'5~6'},
+ {k:'L5',n:'총괄',d:'사업·조직 단위 의사결정',ncs:'6~7'}
+];
+const LVG={L1:'작업지시·체크리스트에 따라 보조 수행하고 결과를 보고한다. 단독 판단은 하지 않는다.',
+ L2:'표준서(SOP)에 정의된 업무를 단독으로 수행하고, 이상 발생 시 기준에 따라 보고·에스컬레이션한다.',
+ L3:'표준 외 예외·이상 상황을 판단해 조치하고, 개선과제를 수행하며 신규 입사자 OJT를 지도한다.',
+ L4:'직무 표준·기준·절차를 수립하고 개정한다. 과제를 리드하며 타 부문에 기술적 판단을 제공한다.',
+ L5:'사업·조직 단위 목표와 로드맵을 수립하고 자원 배분을 결정한다. 대외 기관·고객에 회사를 대표한다.'};
+
+/* ===== 직무 마스터 =====
+   ev: fact=확인 사실 / infer=설계 추론 / check=사내 확인 필요 */
+const JOBS=[
+ /* ── 연구개발·설계 ── */
+ {id:'RD-MED-01',fam:'JF-RD',biz:'BM',n:'혈액여과기 제품개발',ev:'fact',org:'중앙연구소 · Renal Device 본부',
+  def:'인공신장기용 혈액여과기(혈액투석필터)와 CRRT 관련 제품을 설계·개선하고, 국내외 인허가에 필요한 설계 근거와 성능 데이터를 확보하여 제품 경쟁력을 확보한다.',
+  duties:[['제품 설계 및 설계변경 관리','상시','설계도면, 설계이력파일(DHF)'],
+   ['중공사막·모듈 성능 평가 (clearance, UF rate, 용출물)','주','성능시험 보고서'],
+   ['생물학적 안전성·멸균 밸리데이션 자료 확보','과제','시험 성적서'],
+   ['임상시험 설계 지원 및 결과 분석','과제','임상 결과 분석서'],
+   ['국책과제·산학연 공동연구 수행','과제','과제 보고서'],
+   ['양산 이관 및 공정 능력 검증 지원','과제','이관 검증서']],
+  inputs:['제품 요구사항 명세','임상·시장 요구','규격(ISO 8637 등) 요구사항','고객 불만 및 시장 피드백'],
+  tools:['CAD/설계 도구','성능 평가 설비(투석 성능 측정)','통계 분석 도구','문서·형상관리 시스템'],
+  kpis:[['설계검증 1차 통과율','%'],['설계변경 리드타임','일'],['규격 시험 적합률','%'],['양산 이관 후 초기 불량률','ppm']],
+  risks:['설계 근거 미비로 인한 인허가 지연','설계변경 이력 누락','임상 데이터 해석 오류','지식재산 유출'],
+  raci:'R 제품개발 담당 / A 연구소장 / C 인허가·품질·생산기술 / I 사업본부·영업',
+  K:['혈액투석 치료 원리 및 요구 성능 지표','중공사막 소재·방사·모듈 구조','의료기기 설계관리(ISO 13485 7.3) 요구사항','생물학적 안전성 평가(ISO 10993) 개요','통계적 시험설계와 데이터 해석'],
+  S:['제품 설계 및 설계변경 문서화','성능시험 프로토콜 작성과 실행','시험 데이터 분석 및 결론 도출','외부 시험기관·CRO와의 기술 협의','양산 이관을 위한 공정 조건 설정'],
+  A:['근거 기반 판단과 데이터 무결성 준수','환자 안전을 최우선으로 하는 책임감','규격·절차 준수 태도','부문 간 협업과 정보 공유'],
+  edu:{req:['의료기기 설계관리 및 ISO 13485 이해','위험관리(ISO 14971) 기초','연구노트·데이터 무결성 교육'],deep:['ISO 10993 생물학적 안전성 평가','멸균 밸리데이션','임상평가·CER 작성','통계적 실험설계(DOE)']},
+  cert:{req:[],pref:['의료기기 RA 관련 교육 수료','화공·고분자·의공학 관련 전공','기술사·기사(화공, 고분자)']},
+  exp:'관련 분야 연구개발 경력 (필수 연수는 직무 난이도와 내부 기준에 따라 설정)',
+  lv:{L1:'선행 시험의 시료 준비와 데이터 기록을 보조한다.',L2:'정해진 프로토콜로 성능시험을 단독 수행하고 보고서를 작성한다.',
+   L3:'시험 결과의 이상 원인을 분석하고 설계변경안을 제안한다.',L4:'제품 설계 사양과 검증 전략을 수립하고 인허가 근거를 설계한다.',
+   L5:'제품 로드맵과 개발 포트폴리오를 결정하고 국책과제·대외협력을 총괄한다.'}},
+ {id:'RD-FPCB-01',fam:'JF-RD',biz:'EL',n:'FPCB 회로설계',ev:'infer',org:'사내 확인 필요',
+  def:'고객 요구 사양에 맞는 연성회로기판(FPCB)의 회로·적층 구조를 설계하고, 양산 가능한 설계 조건을 확정하여 수율과 신뢰성을 확보한다.',
+  duties:[['고객 사양 검토 및 설계 가능성(DFM) 검토','상시','DFM 검토서'],['회로·적층 설계 및 CAM 데이터 작성','상시','설계 데이터'],['시제품 제작 및 설계 보완','과제','시제품 평가서']],
+  kpis:[['설계 1차 승인률','%'],['설계 원인 불량 비율','%']],
+  K:['FPCB 적층 구조와 재료 특성','고주파·임피던스 설계 기초','고객 사양서 해독'],
+  S:['CAD/CAM 설계 도구 운용','DFM 검토','설계 데이터 검증'],
+  A:['정확성과 꼼꼼함','고객 요구 변경에 대한 대응력']},
+ {id:'RD-MEM-01',fam:'JF-RD',biz:'FM',n:'멤브레인 소재·공정 개발',ev:'infer',org:'사내 확인 필요',
+  def:'PTFE·PVDF 등 분리막 소재와 방사·제막 공정을 개발하여 반도체·수처리·바이오 용도별 요구 성능을 만족하는 멤브레인을 확보한다.',
+  duties:[['소재·배합 및 제막 조건 개발','상시','실험 보고서'],['용도별 성능 평가(투과도·배제율)','주','성능 데이터'],['파일럿 스케일업','과제','스케일업 보고서']],
+  K:['고분자 소재·상분리 원리','분리막 성능 평가 지표','스케일업 공정 변수'],
+  S:['제막 실험 설계와 수행','성능 평가 및 데이터 해석'],A:['반복 실험에 대한 끈기','안전한 화학물질 취급']},
+ {id:'RD-WTR-01',fam:'JF-RD',biz:'FM',n:'수처리 시스템 설계',ev:'infer',org:'사내 확인 필요',
+  def:'정수·하폐수·재이용·해수담수화 설비의 막여과 공정을 설계하고, 프로젝트 요구 수질과 용량을 만족하는 시스템 사양을 확정한다.',
+  duties:[['원수 분석 및 공정 선정','과제','공정 설계서'],['설비 사양·P&ID 작성','과제','도면'],['시운전 및 성능 보증 대응','과제','시운전 보고서']],
+  K:['막여과 공정 설계','수질 기준 및 관련 법규','설비·배관·계측 기초'],
+  S:['공정 계산과 사양 결정','도면 작성','현장 시운전 대응'],A:['현장 안전 준수','발주처와의 신뢰 관계 유지']},
+ {id:'RD-EQP-01',fam:'JF-RD',biz:'EL',n:'검사기·자동화장비 설계',ev:'infer',org:'사내 확인 필요',
+  def:'제품 검사기와 생산 자동화 장비를 설계·제작하여 검사 정확도와 생산성을 높인다.',
+  duties:[['장비 사양 정의 및 기구·제어 설계','과제','설계도면'],['장비 제작·검증 및 현장 적용','과제','검증 보고서']],
+  K:['기구 설계','비전·센서 검사 원리','PLC 제어 기초'],S:['3D 설계 도구 운용','장비 디버깅'],A:['현장 요구 수용과 개선 지향']},
+
+ /* ── 생산·공정·설비 ── */
+ {id:'PR-FPCB-01',fam:'JF-PR',biz:'EL',n:'FPCB 제조공정기술',ev:'infer',org:'사내 확인 필요',
+  def:'FPCB 양산 공정의 조건을 표준화하고 공정 이상을 해석·개선하여 목표 수율과 품질, 납기를 안정적으로 확보한다.',
+  duties:[['공정 조건 표준화 및 SOP 관리','상시','공정표준서'],['공정 이상 원인 분석 및 개선','일','4M 변경·개선 보고서'],
+   ['수율·불량 데이터 모니터링','일','수율 일보'],['신제품 양산 이관 및 초기 안정화','과제','이관 체크리스트'],
+   ['설비·자동화 개선 과제 수행','과제','개선 실적']],
+  inputs:['설계 데이터 및 공정 요구사항','수율·불량 데이터','설비 가동 데이터','고객 품질 요구'],
+  tools:['MES','SPC/통계 분석 도구','공정 설비 및 계측기','4M 변경관리 시스템'],
+  kpis:[['공정 수율','%'],['주요 공정 Cpk','지수'],['불량 재발률','%'],['개선과제 완료율','%']],
+  risks:['4M 변경 미승인 적용','유해 화학물질 취급 사고','공정 데이터 왜곡','고객 승인 조건 이탈'],
+  raci:'R 공정기술 담당 / A 제조부문장 / C 품질·설비·연구개발 / I 영업·생산관리',
+  K:['FPCB 제조 공정 흐름(노광·에칭·도금·라미네이션 등)','공정 능력 지수와 SPC 해석','4M 변경관리 절차','화학물질 안전 및 MSDS'],
+  S:['공정 조건 설정과 최적화','불량 원인 분석(5Why, 특성요인도)','SOP·작업표준 작성','데이터 기반 개선과제 수행'],
+  A:['표준 준수와 기록 정확성','안전수칙 철저 이행','현장 작업자와의 소통'],
+  edu:{req:['제조 공정 기본과정','화학물질 안전보건교육','4M 변경관리 및 품질 기본교육'],deep:['SPC 심화','통계적 실험설계(DOE)','설비 자동화·데이터 분석']},
+  cert:{req:[],pref:['화공·전자·재료 관련 전공','품질경영기사','위험물·화학물질 관련 자격']},
+  exp:'제조 공정 운영 또는 공정기술 경력'},
+ {id:'PR-INJ-01',fam:'JF-PR',biz:'BM',n:'사출 공정관리',ev:'fact',org:'Renal Device 본부 사출부문 · 방교사업장',
+  def:'의료기기 부품의 사출 성형 조건을 관리하고 금형·설비를 운영하여 요구 치수와 품질을 만족하는 부품을 안정적으로 생산한다.',
+  duties:[['사출 조건 설정 및 양산 관리','일','사출 조건표'],['금형 관리 및 보전','주','금형 이력'],['치수·외관 불량 개선','상시','개선 보고서']],
+  K:['사출 성형 원리와 수지 특성','금형 구조와 보전','의료기기 부품 청정 요구'],
+  S:['사출 조건 셋업과 트러블슈팅','금형 교체·점검','치수 측정'],A:['청정·위생 수칙 준수','설비 안전 수칙 이행'],
+  edu:{req:['사출 성형 기본','의료기기 GMP 기초','설비 안전교육'],deep:['금형 설계 이해','성형 불량 해석']},
+  cert:{req:[],pref:['사출금형산업기사','기계·고분자 관련 전공']}},
+ {id:'PR-MEM-01',fam:'JF-PR',biz:'FM',n:'멤브레인 방사·모듈 생산',ev:'infer',org:'시노펙스멤브레인(대구) · 포항필터'},
+ {id:'PR-EQP-01',fam:'JF-PR',biz:'CO',n:'설비보전',ev:'infer',org:'사내 확인 필요',
+  def:'생산 설비의 예방·예측 보전을 수행하여 설비 가동률을 유지하고 돌발 정지를 최소화한다.',
+  duties:[['예방보전 계획 수립·실행','월','보전 이력'],['고장 대응 및 원인 분석','상시','고장 보고서'],['예비품 관리','월','예비품 현황']],
+  kpis:[['설비 가동률','%'],['MTBF','시간'],['예방보전 계획 준수율','%']],
+  K:['기계·전기 설비 구조','보전 계획 수립 방법','위험성 평가'],S:['고장 진단과 수리','보전 이력 관리'],A:['작업 전 안전조치 철저','기록 성실성']},
+ {id:'PR-PLN-01',fam:'JF-PR',biz:'CO',n:'생산계획·공정관리',ev:'infer',org:'사내 확인 필요'},
+
+ /* ── 품질·시험·검사 ── */
+ {id:'QA-QMS-01',fam:'JF-QA',biz:'CO',n:'품질경영시스템 운영',ev:'infer',org:'사내 확인 필요',
+  def:'ISO 9001, ISO 13485, IATF 등 사업별 품질경영시스템을 유지·개선하고 내부·외부 심사를 대응하여 품질 체계의 적합성을 보증한다.',
+  duties:[['품질 매뉴얼·절차서 제·개정','상시','품질문서'],['내부심사 계획·실시 및 부적합 관리','반기','내부심사 보고서'],
+   ['외부 인증심사 및 고객심사 대응','연','심사 결과 보고서'],['부적합·시정조치(CAPA) 운영','상시','CAPA 이력'],
+   ['품질 지표 집계 및 경영검토 보고','분기','경영검토 자료']],
+  inputs:['인증 규격 요구사항','내부·외부 심사 지적사항','고객 클레임','공정·검사 데이터'],
+  tools:['문서관리시스템','CAPA 관리대장','통계 분석 도구'],
+  kpis:[['내부심사 계획 준수율','%'],['CAPA 기한 내 완료율','%'],['외부심사 중대 부적합 건수','건'],['고객 클레임 재발률','%']],
+  risks:['인증 유지 실패로 인한 거래 중단','문서 버전 불일치','시정조치 형식화','기록 미비'],
+  raci:'R 품질보증 담당 / A 품질부문장 / C 전 부문 / I 경영진',
+  K:['ISO 9001 / ISO 13485 / IATF 요구사항 구조','프로세스 접근법과 위험기반 사고','심사 기법','통계적 품질관리 기초'],
+  S:['품질문서 작성·개정','내부심사 수행과 부적합 판정','근본원인 분석과 CAPA 설계','품질 데이터 집계·보고'],
+  A:['원칙과 독립성 유지','기록의 정직성','부문 간 중립적 조정'],
+  edu:{req:['품질경영시스템 기본과정','내부심사원 양성과정','문서·기록관리 교육'],deep:['ISO 13485 심화','위험관리(ISO 14971)','근본원인분석(RCA) 심화','통계적 품질관리']},
+  cert:{req:['내부심사원 수료 (사내 필수 여부 확인 필요)'],pref:['품질경영기사','ISO 13485 / 9001 선임심사원']},
+  exp:'품질보증 또는 심사 대응 경력'},
+ {id:'QA-INS-01',fam:'JF-QA',biz:'CO',n:'수입·공정·출하검사',ev:'infer',org:'사내 확인 필요',
+  def:'원자재·공정 중간품·완제품을 검사 기준에 따라 판정하여 부적합품의 후공정 및 고객 유출을 차단한다.',
+  duties:[['검사 기준서에 따른 검사 수행','일','검사 성적서'],['부적합품 식별·격리·처리','상시','부적합 보고서'],['계측기 관리 및 교정','월','교정 이력']],
+  kpis:[['검사 누락 건수','건'],['고객 유출 불량','ppm'],['계측기 교정 준수율','%']],
+  K:['검사 기준과 샘플링(AQL) 원리','계측기 사용과 교정','부적합품 처리 절차'],
+  S:['치수·외관·성능 검사 수행','검사 데이터 기록과 판정'],A:['판정의 일관성과 독립성','기록 위조 금지 원칙 준수']},
+ {id:'QA-VAL-01',fam:'JF-QA',biz:'BM',n:'의료기기 검증·밸리데이션',ev:'infer',org:'사내 확인 필요'},
+ {id:'QA-REL-01',fam:'JF-QA',biz:'EL',n:'신뢰성시험·분석',ev:'infer',org:'사내 확인 필요'},
+ {id:'QA-WTR-01',fam:'JF-QA',biz:'FM',n:'수질분석·시험',ev:'infer',org:'사내 확인 필요'},
+
+ /* ── 구매·자재·SCM·물류 ── */
+ {id:'SC-PUR-01',fam:'JF-SC',biz:'CO',n:'구매·협력사관리',ev:'infer',org:'사내 확인 필요',
+  def:'생산과 개발에 필요한 자재·부품·서비스를 적정 품질과 원가, 납기 조건으로 확보하고 협력사의 품질·공급 역량을 관리한다.',
+  duties:[['견적·협상 및 발주','주','발주서'],['협력사 평가 및 등록·갱신','반기','협력사 평가서'],
+   ['원가 절감 과제 수행','분기','절감 실적'],['자재 납기 관리 및 공급 리스크 대응','일','납기 현황'],
+   ['규제 대응 자료 확보(RoHS, REACH, 의료기기 공급자 자료)','상시','공급자 자료']],
+  inputs:['소요 계획(BOM, MRP)','품질 요구사항','협력사 견적','시장 원자재 가격'],
+  tools:['ERP 구매 모듈','협력사 평가 양식','원가 분석 템플릿'],
+  kpis:[['납기 준수율','%'],['원가 절감액','원'],['협력사 평가 완료율','%'],['단일 공급 의존 품목 수','건']],
+  risks:['단일 공급처 의존에 따른 공급 중단','이해관계 충돌·부정','규제 미충족 자재 입고','가격 변동 리스크'],
+  raci:'R 구매 담당 / A 구매부문장 / C 품질·생산관리·개발 / I 재무',
+  K:['구매 프로세스와 계약 기본','원가 구조와 견적 분석','협력사 평가 기준','수입 자재 관련 규제(RoHS·REACH 등)'],
+  S:['견적 비교와 협상','협력사 심사 참여','ERP 구매 처리','공급 리스크 분석'],
+  A:['윤리경영과 공정거래 원칙 준수','협력사와의 상생 관점','기한 관리의 책임감'],
+  edu:{req:['구매 실무 기본과정','윤리경영·공정거래 교육','ERP 구매 모듈 사용 교육'],deep:['협상 전략','원가 분석 심화','글로벌 소싱·수출입 실무']},
+  cert:{req:[],pref:['무역·구매 관련 자격','비즈니스 외국어 능력']},
+  exp:'구매 또는 자재·SCM 경력'},
+ {id:'SC-MAT-01',fam:'JF-SC',biz:'CO',n:'자재·재고관리',ev:'infer',org:'사내 확인 필요'},
+ {id:'SC-TRD-01',fam:'JF-SC',biz:'CO',n:'수출입·물류',ev:'infer',org:'사내 확인 필요',
+  def:'제품 수출과 자재 수입의 통관·운송을 관리하여 납기와 비용, 법규 준수를 동시에 확보한다.',
+  duties:[['수출입 서류 작성 및 통관 대응','상시','수출입 서류'],['운송사 선정과 물류비 관리','월','물류비 분석'],['원산지·FTA 증명 관리','상시','원산지 증명']],
+  K:['수출입 절차와 인코텀즈','관세·FTA 원산지 규정','운송 수단별 특성'],
+  S:['수출입 서류 작성','통관 이슈 대응','물류비 산정'],A:['법규 준수','납기에 대한 책임감']},
+
+ /* ── 영업·기술영업·고객지원 ── */
+ {id:'SL-TEC-01',fam:'JF-SL',biz:'FM',n:'기술영업 (반도체·산업필터)',ev:'infer',org:'사내 확인 필요',
+  def:'반도체·제약·바이오·식음료 등 산업 고객의 공정 조건을 분석하여 적합한 필터 솔루션을 제안하고 기술 검증을 거쳐 수주로 연결한다.',
+  duties:[['고객 공정·요구 조건 분석','상시','고객 요구 분석서'],['제품 선정 및 기술 제안','주','제안서'],
+   ['샘플 테스트·평가 지원 및 결과 해석','과제','평가 결과 보고'],['견적·계약 및 수주 관리','주','견적·계약서'],
+   ['전시회·학회를 통한 신규 고객 발굴','연','전시 결과 보고']],
+  inputs:['고객 공정 데이터','제품 사양·성능 데이터','경쟁사 동향','전시회·학회 리드'],
+  tools:['CRM 또는 영업관리대장','제품 선정 가이드','견적 템플릿'],
+  kpis:[['수주액','원'],['제안 대비 수주 전환율','%'],['신규 고객 확보 건수','건'],['샘플 테스트 성공률','%']],
+  risks:['과도한 성능 약속으로 인한 클레임','기술자료 유출','단가 왜곡','고객 규제 요구 미확인'],
+  raci:'R 기술영업 담당 / A 영업부문장 / C 연구개발·품질·생산 / I 경영진',
+  K:['필터·멤브레인 제품군과 성능 지표','고객 산업별 공정과 요구 수질·청정도','경쟁 제품 비교 관점','계약·견적 기본 구조'],
+  S:['고객 요구의 기술 사양 전환','기술 제안서 작성과 프레젠테이션','테스트 결과 해석과 설명','가격·조건 협상'],
+  A:['고객중심 사고','과장 없는 정직한 설명','부문 간 협업으로 문제 해결'],
+  edu:{req:['제품 기본교육(필터·멤브레인)','영업 윤리·공정거래 교육','제안서 작성 기본'],deep:['산업별 공정 이해 심화','기술 프레젠테이션','비즈니스 외국어','계약 실무']},
+  cert:{req:[],pref:['화공·환경·기계 관련 전공','비즈니스 외국어 능력']},
+  exp:'기술영업 또는 관련 산업 영업 경력'},
+ {id:'SL-EL-01',fam:'JF-SL',biz:'EL',n:'해외영업 (FPCB·전장)',ev:'infer',org:'사내 확인 필요'},
+ {id:'SL-MED-01',fam:'JF-SL',biz:'BM',n:'의료기기 영업·학술',ev:'infer',org:'인공신장사업본부 (조직명 확인 필요)'},
+ {id:'SL-PRJ-01',fam:'JF-SL',biz:'FM',n:'수처리 프로젝트 수주·입찰',ev:'infer',org:'사내 확인 필요'},
+ {id:'SL-CS-01',fam:'JF-SL',biz:'CO',n:'고객지원·CS',ev:'infer',org:'사내 확인 필요'},
+
+ /* ── 인허가·규제·문서관리 ── */
+ {id:'RA-MED-01',fam:'JF-RA',biz:'BM',n:'의료기기 인허가',ev:'fact',org:'사내 확인 필요',
+  def:'혈액여과기·CRRT 등 의료기기의 국내 품목허가와 해외 등록(CE MDR, 수출국 보건당국)을 기획·수행하여 제품의 시장 진입 자격을 확보하고 유지한다.',
+  duties:[['국내 품목허가 및 변경허가 진행','과제','허가증, 제출자료'],['해외 등록 전략 수립 및 신청','과제','해외 등록 증명'],
+   ['기술문서(STED/CER) 작성 및 갱신','과제','기술문서'],['임상평가 자료 확보 및 CRO·시험기관 관리','과제','임상평가 보고서'],
+   ['규제 동향 모니터링 및 사내 전파','월','규제 동향 보고'],['사후관리·이상사례 보고 체계 운영','상시','PMS 기록']],
+  inputs:['제품 설계·검증 자료','임상 데이터','각국 규제 요구사항','품질시스템 기록'],
+  tools:['규제 문서 관리 시스템','각국 규제 포털','CRO·시험기관 협업 채널'],
+  kpis:[['허가 목표 일정 준수율','%'],['보완 요구 건수','건'],['해외 등록 신규 국가 수','개국'],['기술문서 최신성 유지율','%']],
+  risks:['제출자료 미비로 인한 허가 지연','규제 개정 미반영','임상자료 신뢰성 문제','사후관리 보고 지연'],
+  raci:'R 인허가 담당 / A 인허가·품질 책임자 / C 연구개발·품질·임상 / I 영업·경영진',
+  K:['의료기기법 및 식약처 허가 절차','CE MDR 요구사항과 기술문서 구조','ISO 13485·ISO 14971 연계 관계','임상평가 및 사후관리(PMS) 요구'],
+  S:['제출자료 구성과 작성','규제기관·심사기관 질의 대응','외부 시험기관·CRO 관리','규제 개정 영향 분석'],
+  A:['법규 준수와 정확성','데이터 무결성 원칙 고수','장기 과제에 대한 일정 관리 책임'],
+  edu:{req:['의료기기 인허가 기본과정','의료기기법·GMP 이해','문서·기록관리 교육'],deep:['CE MDR 기술문서 작성','임상평가보고서(CER)','해외 등록 실무','위험관리 심화']},
+  cert:{req:[],pref:['의료기기 RA 전문가 과정 수료','의공학·약학·화공 관련 전공','영어 문서 작성 능력']},
+  exp:'의료기기 인허가 또는 기술문서 작성 경력',
+  lv:{L1:'제출자료 수집과 양식 정리를 보조한다.',L2:'정해진 절차에 따라 변경허가·갱신 서류를 단독 작성한다.',
+   L3:'보완 요구의 쟁점을 분석해 대응 논리를 구성한다.',L4:'제품별 국내외 인허가 전략과 일정을 수립한다.',
+   L5:'사업 단위 규제 전략과 대외 기관 협상을 총괄한다.'}},
+ {id:'RA-DOC-01',fam:'JF-RA',biz:'BM',n:'기술문서·DHF 관리',ev:'infer',org:'사내 확인 필요'},
+ {id:'RA-CRT-01',fam:'JF-RA',biz:'EL',n:'제품인증·고객심사 대응',ev:'fact',org:'사내 확인 필요',
+  def:'고객사 공급자 인증(예: 완성차 SQ 인증)과 제품 인증을 준비·대응하여 공급 자격을 확보하고 유지한다.',
+  duties:[['인증 요구사항 분석 및 갭 분석','과제','갭 분석표'],['증빙 자료 준비 및 사내 조율','과제','인증 패키지'],['심사 대응 및 지적사항 조치','과제','시정조치 보고']],
+  K:['고객 품질 요구 체계','인증 심사 기준','부문별 증빙 요건'],
+  S:['갭 분석','증빙 자료 구성','심사 대응'],A:['부문 간 조율 능력','기한 준수']},
+
+ /* ── 환경·안전 ── */
+ {id:'ES-ENV-01',fam:'JF-ES',biz:'CO',n:'환경기술인 (법정 선임)',ev:'fact',org:'김천안전환경운영팀 · 김천사업장',
+  def:'사업장의 대기·수질·폐기물 등 환경 관련 법정 선임 업무를 수행하고 환경 방지시설을 운영·관리하여 환경 법규 준수와 배출 기준 적합을 보장한다.',
+  duties:[['환경 방지시설 운영·점검','일','운영일지'],['자가측정 및 배출 기준 관리','월','측정 기록'],
+   ['환경 관련 신고·보고 및 인허가 유지','상시','신고 서류'],['폐기물 처리 및 올바로 시스템 관리','상시','폐기물 대장'],
+   ['환경 법규 개정 대응 및 사내 교육','분기','교육 기록'],['환경 점검·감사 대응','연','점검 결과 보고']],
+  inputs:['환경 관련 법령 및 인허가 조건','방지시설 운영 데이터','자가측정 결과','폐기물 발생 현황'],
+  tools:['환경 방지시설 및 계측기','환경 관련 신고 시스템','운영일지·대장'],
+  kpis:[['배출 기준 초과 건수','건'],['법정 기한 내 신고 완료율','%'],['자가측정 계획 준수율','%'],['환경 점검 지적사항 조치율','%']],
+  risks:['배출 기준 초과 시 행정처분·조업정지','법정 선임 공백','폐기물 처리 부적정','측정 기록 부실'],
+  raci:'R 환경기술인 / A 사업장 안전환경 책임자 / C 생산·설비·법무 / I 경영진·관할 행정기관',
+  K:['대기·수질·폐기물 관련 법령과 배출 기준','방지시설 원리와 운영 조건','자가측정 및 기록 보존 요건','화학물질 관리 요구사항'],
+  S:['방지시설 운영 조건 조정','자가측정 결과 해석과 조치','법정 신고·보고 서류 작성','행정기관 점검 대응'],
+  A:['법규 준수 최우선','기록의 정확성과 보존 의무 이행','이상 발생 시 즉시 보고'],
+  edu:{req:['환경기술인 법정 교육 (적용 법령·주기는 공식 자료로 확인 필요)','사업장 안전보건교육','화학물질 안전교육'],deep:['방지시설 운영 심화','환경 법규 개정 과정','탄소중립·온실가스 산정']},
+  cert:{req:['해당 환경 분야 기술자격 (선임 요건은 적용 법령으로 확인 필요)'],pref:['대기환경기사','수질환경기사','폐기물처리기사']},
+  exp:'환경 관리 또는 방지시설 운영 경력',
+  lv:{L1:'운영일지 기록과 점검 보조를 수행한다.',L2:'방지시설 일상 운영과 자가측정 기록을 단독 수행한다.',
+   L3:'배출 이상의 원인을 판단해 운영 조건을 조정하고 재발을 방지한다.',L4:'사업장 환경 관리 계획과 법규 대응 체계를 수립한다.',
+   L5:'전사 환경 전략과 다수 사업장의 법규 리스크를 총괄한다.'}},
+ {id:'ES-ELE-01',fam:'JF-ES',biz:'CO',n:'전기안전관리자 (법정 선임)',ev:'fact',org:'김천안전환경운영팀 · 김천사업장',
+  def:'사업장 전기설비의 법정 안전관리 업무를 수행하여 전기 재해를 예방하고 설비의 안전한 운전 상태를 유지한다.',
+  duties:[['전기설비 점검 및 안전관리','일','점검 기록'],['법정 검사 수검 및 기록 관리','연','검사 성적서'],['전기 작업 안전조치 및 작업허가','상시','작업허가서']],
+  K:['전기설비기술기준','법정 선임 및 점검 요건','전기 재해 예방 원리'],
+  S:['전기설비 점검·측정','이상 진단과 조치','작업 안전 관리'],A:['안전 최우선 원칙','법정 기록 성실 관리'],
+  cert:{req:['전기 분야 기술자격 (선임 요건은 적용 법령으로 확인 필요)'],pref:['전기기사','전기안전기술사']}},
+ {id:'ES-SAF-01',fam:'JF-ES',biz:'CO',n:'안전보건관리',ev:'infer',org:'사내 확인 필요',
+  def:'사업장 위험성 평가와 안전보건 활동을 운영하여 중대재해와 산업재해를 예방한다.',
+  duties:[['위험성 평가 실시 및 개선','반기','위험성 평가표'],['안전보건교육 기획·운영','월','교육 기록'],['사고 조사 및 재발 방지','상시','사고 조사 보고서']],
+  kpis:[['재해율','%'],['위험성 평가 개선 조치율','%'],['법정 교육 이수율','%']],
+  K:['산업안전보건 법령 체계','위험성 평가 방법','중대재해 예방 요구사항'],
+  S:['위험성 평가 수행','사고 원인 분석','교육 운영'],A:['현장 중심 관찰','원칙 있는 지적과 설득']},
+ {id:'ES-ESG-01',fam:'JF-ES',biz:'CO',n:'탄소중립·ESG',ev:'infer',org:'사내 확인 필요'},
+
+ /* ── 경영기획·재무·인사·총무 ── */
+ {id:'MG-HR-01',fam:'JF-MG',biz:'CO',n:'인사·HRD',ev:'fact',org:'사내 확인 필요',
+  def:'채용·배치·평가·보상과 직무기반 교육체계를 운영하여 사업 전략에 필요한 인재를 확보하고 구성원의 직무역량을 향상시킨다.',
+  duties:[['채용 계획 수립 및 채용 프로세스 운영','상시','채용 결과 보고'],['직무체계·직무기술서 관리 및 개정','연','직무문서'],
+   ['직무별 필수·심화 교육 기획과 운영','분기','교육 운영 결과'],['교육이력·자격 유효기간 관리','상시','교육·자격 이력'],
+   ['평가·보상 제도 운영 지원','연','평가 결과'],['온보딩 및 경력개발경로(CDP) 운영','상시','온보딩 가이드']],
+  inputs:['사업계획과 인력 수요','직무기술서·직무명세서','교육 이력 및 자격 데이터','평가 결과'],
+  tools:['인사 시스템 또는 Excel·CSV 인사자료','교육 운영 관리대장','직무문서 템플릿'],
+  kpis:[['직무정의 완료율','%'],['직원 직무배정 완료율','%'],['필수교육 기한 내 수료율','%'],['유효 자격 보유율','%'],['목표역량 대비 부족 항목 수','건']],
+  risks:['개인정보 유출','법정교육 미이행','자격 만료 미인지로 인한 선임 공백','직무문서 노후화'],
+  raci:'R 인사·HRD 담당 / A 경영지원 책임자 / C 현업 부문장·직무전문가 / I 전 구성원',
+  K:['인사 제도와 노동 관련 법규 기초','직무분석 방법과 직무문서 구조','NCS 기반 교육체계 설계 원리','교육 효과 측정과 KPI 정의','개인정보 보호 요구사항'],
+  S:['직무기술서·직무명세서 작성과 검토','교육과정 설계와 운영','교육·자격 데이터 관리와 집계','현업 인터뷰를 통한 직무 정보 수집'],
+  A:['공정성과 일관성 유지','개인정보 보호 책임','현업 요구를 반영하는 협업 태도'],
+  edu:{req:['인사 실무 기본과정','개인정보 보호 교육','직장 내 괴롭힘·성희롱 예방 교육 (법정 여부는 공식 자료로 확인 필요)'],
+   deep:['직무분석·직무평가 실무','NCS 기반 교육체계 설계','HR 데이터 분석','노동법 심화']},
+  cert:{req:[],pref:['경영·심리·교육 관련 전공','공인노무사','HR 데이터 분석 관련 교육 수료']},
+  exp:'인사 또는 HRD 운영 경력',
+  lv:{L1:'교육 운영 지원과 이력 입력을 보조한다.',L2:'채용 공고·교육 과정 운영을 단독으로 수행한다.',
+   L3:'직무별 교육 요구를 분석해 과정을 설계하고 현업과 조율한다.',L4:'직무체계와 교육체계 표준을 수립하고 제도 개정을 주도한다.',
+   L5:'인재 전략과 조직 운영 방향을 결정한다.'}},
+ {id:'MG-FIN-01',fam:'JF-MG',biz:'CO',n:'재무·회계',ev:'infer',org:'사내 확인 필요'},
+ {id:'MG-IR-01',fam:'JF-MG',biz:'CO',n:'IR·공시',ev:'fact',org:'사내 확인 필요',
+  def:'코스닥 상장사로서 요구되는 공시 의무를 이행하고 투자자에게 경영 성과와 사업 전략을 전달한다.',
+  duties:[['정기·수시 공시 작성 및 제출','상시','공시 서류'],['IR 자료 작성 및 투자자 대응','분기','IR 자료'],['주주 관련 업무 지원','상시','주주 관련 서류']],
+  K:['자본시장 공시 규정','재무제표 해독','주식·주주 관련 제도'],
+  S:['공시 서류 작성','IR 자료 구성과 설명'],A:['정보 공정성과 기한 준수','미공개 정보 관리']},
+ {id:'MG-STR-01',fam:'JF-MG',biz:'CO',n:'경영기획·사업분석',ev:'infer',org:'사내 확인 필요'},
+ {id:'MG-GA-01',fam:'JF-MG',biz:'CO',n:'총무·법무',ev:'infer',org:'사내 확인 필요'},
+
+ /* ── IT·정보보안·데이터·AX ── */
+ {id:'IT-AI-01',fam:'JF-IT',biz:'CO',n:'AI·데이터 (AX)',ev:'fact',org:'AI사업팀 (조직명 확인 필요)',
+  def:'사내 데이터와 AI 기술을 활용해 제품·서비스와 업무 프로세스를 개선하고, 데이터 기반 의사결정 체계를 구축한다.',
+  duties:[['업무·제품 영역의 AI 적용 과제 발굴','분기','과제 기획서'],['데이터 수집·정제 및 분석','주','분석 결과'],
+   ['모델·서비스 개발 및 검증','과제','검증 보고서'],['사내 데이터 활용 가이드와 교육','반기','가이드·교육 자료']],
+  inputs:['사내 운영 데이터','제품·고객 데이터','업무 프로세스 현황','보안·개인정보 정책'],
+  tools:['데이터 분석 환경','버전관리 시스템','사내 서버 또는 로컬 분석 환경'],
+  kpis:[['과제 실적용 전환율','%'],['대상 업무 처리시간 단축률','%'],['데이터 품질 오류율','%']],
+  risks:['개인정보·영업비밀의 외부 유출','모델 결과의 과신','데이터 편향','외부 서비스 의존'],
+  raci:'R AI·데이터 담당 / A IT 또는 사업 책임자 / C 현업 부문·정보보안 / I 경영진',
+  K:['데이터 분석 및 머신러닝 기초','업무 도메인 이해','개인정보 보호·보안 요구사항','데이터 품질 관리'],
+  S:['데이터 전처리와 분석','모델 개발·평가','분석 결과의 업무 언어 전환','현업과의 과제 정의'],
+  A:['결과의 한계를 명시하는 정직성','보안·개인정보 보호 준수','실험적 시도와 검증 습관'],
+  edu:{req:['정보보안 및 개인정보 보호 교육','데이터 분석 기본과정'],deep:['머신러닝·딥러닝 실무','데이터 엔지니어링','AI 윤리와 리스크 관리']},
+  cert:{req:[],pref:['데이터·통계 관련 전공','ADsP·빅데이터분석기사 등']},
+  exp:'데이터 분석 또는 AI 개발 경력'},
+ {id:'IT-INF-01',fam:'JF-IT',biz:'CO',n:'IT인프라·전산',ev:'infer',org:'사내 확인 필요',
+  def:'사내 네트워크·서버·단말과 업무 시스템을 안정적으로 운영하여 업무 연속성을 보장한다.',
+  duties:[['서버·네트워크 운영 및 장애 대응','상시','운영·장애 기록'],['백업·복구 체계 운영','월','백업 점검 기록'],['단말·계정 관리','상시','자산·계정 대장']],
+  kpis:[['시스템 가용률','%'],['장애 복구 시간','시간'],['백업 점검 주기 준수율','%']],
+  K:['네트워크·서버 운영','백업·복구 전략','계정·권한 관리'],S:['장애 진단과 복구','시스템 구축과 설정'],A:['장애 시 신속 대응','변경 사항 기록 습관']},
+ {id:'IT-SEC-01',fam:'JF-IT',biz:'CO',n:'정보보안',ev:'infer',org:'사내 확인 필요'},
+ {id:'IT-MES-01',fam:'JF-IT',biz:'CO',n:'MES·ERP 운영',ev:'infer',org:'사내 확인 필요'}
+];
+
+
+/* ===== NCS 실매핑 (ncs.go.kr 확인일 2026-10-05~06 KST) =====
+   세분류 코드·명칭·능력단위명·분류번호·수준 모두 포털 조회 결과. 추측 생성 없음. 23개 세분류 / 능력단위 255개. */
+const NCS={
+'19030904':{n:'의료기기연구개발',p:'19 전기·전자 > 03 전자기기개발 > 09 의료장비제조',u:[['1903090401_21v2','의료기기 연구개발기획',5],['1903090402_21v2','의료기기 개발 계획 수립',5],['1903090403_21v2','의료기기 개발 위험관리',4],['1903090404_21v2','의료기기 하드웨어 설계제작',3],['1903090405_21v2','의료기기 소프트웨어 설계제작',3],['1903090406_21v2','의료기기 기구 설계제작',3],['1903090407_21v2','의료기기 안전성 유효성 검사',3],['1903090409_21v2','의료기기 개발문서 작성관리',4],['1903090410_21v2','의료기기 설계 이관',4]]},
+'19030902':{n:'의료기기인·허가',p:'19 전기·전자 > 03 전자기기개발 > 09 의료장비제조',u:[['1903090201_21v2','인허가정보수집',5],['1903090202_21v2','의료기기등급분류',3],['1903090203_21v2','임상시험',6],['1903090204_21v2','규격선정',4],['1903090205_21v2','기술문서준비',4],['1903090208_21v2','인허가심사',4],['1903090209_21v2','보험등재',5],['1903090210_21v2','인허가 사후관리',5],['1903090211_21v1','임상평가',4]]},
+'19030901':{n:'의료기기품질관리',p:'19 전기·전자 > 03 전자기기개발 > 09 의료장비제조',u:[['1903090101_21v2','의료기기 품질문서 개발',4],['1903090102_21v2','의료기기 품질시스템 자원관리',4],['1903090103_21v2','의료기기 내부(품질) 감사',5],['1903090105_21v2','의료기기 품질시스템 인증',5],['1903090106_21v2','의료기기 시제품 품질관리',4],['1903090110_21v2','시정 및 예방조치(CAPA)',4]]},
+'19020202':{n:'전자부품생산',p:'19 전기·전자 > 02 전자기기일반 > 02 전자부품기획·생산',u:[['1902020201_16v3','전자부품 생산기술지원',4],['1902020202_16v4','전자부품 생산관리',4],['1902020203_16v3','전자부품 구매관리',4],['1902020204_16v3','전자부품 자재관리',2],['1902020205_16v3','전자부품 공정관리',4],['1902020207_16v3','전자부품 생산인력관리',4],['1902020208_16v3','전자부품 생산활동',2],['1902020209_16v3','전자부품 품질관리',4],['1902020210_16v3','전자부품 출하관리',2],['1902020211_16v3','전자부품 설비계획',2],['1902020212_16v3','전자부품설비보전',2]]},
+'19030501':{n:'전자부품하드웨어개발',p:'19 전기·전자 > 03 전자기기개발 > 05 전자부품개발',u:[['1903050101_16v2','부품개발 검토',6],['1903050102_13v1','부품 특허 확보',5],['1903050103_18v2','부품 규격 결정',4],['1903050104_18v3','부품 시뮬레이션 분석',4],['1903050105_18v3','부품 설계',4],['1903050106_18v3','부품 시제품 제작',4],['1903050107_18v2','부품 품질평가',4],['1903050108_18v3','부품 실장 검증',4],['1903050109_18v2','부품 인증 획득',4],['1903050110_13v1','양산 이관',5]]},
+'17040105':{n:'사출성형',p:'17 화학·바이오 > 04 플라스틱·고무 > 01 플라스틱',u:[['1704010501_17v3','사출성형품 사양서 검토',5],['1704010502_17v3','사출성형품 검토',4],['1704010503_17v3','시험사출 준비',2],['1704010504_22v4','사출성형 조건 설정',4],['1704010505_17v3','사출성형품 생산',2],['1704010506_17v3','사출성형 부적합대책 수립',4],['1704010507_17v3','사출성형 후가공 작업',3],['1704010508_17v3','사출성형품 품질관리',4],['1704010509_22v4','사출성형 공정검사',3],['1704010510_17v3','사출성형 후가공 공정관리',4],['1704010511_17v3','사출성형 설비 유지관리',3],['1704010512_17v3','사출성형 설비점검',2],['1704010513_17v3','사출성형 외주관리',3],['1704010514_17v3','사출성형 안전관리',3]]},
+'17010203':{n:'화학공정유지운영',p:'17 화학·바이오 > 01 화학·바이오공통 > 02 화학공정관리',u:[['1701020302_16v2','정비계획 수립',5],['1701020304_16v2','예방정비',5],['1701020306_22v3','고정기기 점검',3],['1701020307_16v2','배관·고정기기 유지관리',5],['1701020310_22v3','공정 흐름도 파악',3],['1701020311_22v3','공정물질 특성 파악',3],['1701020312_22v3','환경·안전점검',3],['1701020313_22v3','환경·안전관리',5],['1701020314_22v3','회전기계 점검',3],['1701020315_16v2','회전기계 유지관리',5],['1701020316_16v2','전기설비 점검',3],['1701020317_16v2','전기설비 유지관리',5],['1701020318_22v3','계장설비 점검',3],['1701020319_16v2','계장설비 유지관리',5],['1701020320_16v1','화학공정설비운전',3],['1701020321_16v1','화학공정 위험성 평가',5],['1701020322_16v1','화학공정 개선',5],['1701020323_16v1','유틸리티 공정관리',5],['1701020324_16v1','설비보수 외주관리',5],['1701020325_22v1','배관·관부속품 파악',2],['1701020326_22v1','회전기계 파악',2],['1701020327_22v1','계장설비 파악',2]]},
+'02040201':{n:'QM/QC관리',p:'02 경영·회계·사무 > 04 생산·품질관리 > 02 품질관리',u:[['0204020101_14v1','품질전략수립',6],['0204020102_14v1','품질정보관리',4],['0204020103_14v1','서비스 품질관리',5],['0204020104_14v1','사내표준화',4],['0204020105_14v1','품질코스트관리',6],['0204020106_14v1','설계품질관리',5],['0204020107_16v2','공정품질관리',4],['0204020108_14v1','품질검사관리',4],['0204020109_14v1','협력사품질관리',4],['0204020110_16v2','품질보증체계확립',5],['0204020111_14v1','신뢰성관리',5],['0204020112_14v1','안전품질관리',6],['0204020113_16v2','품질경영혁신활동',4],['0204020114_16v2','지속적개선활동',3],['0204020115_14v1','현장품질관리',3],['0204020116_16v1','품질경영시스템인증관리',5]]},
+'02040101':{n:'구매관리',p:'02 경영·회계·사무 > 04 생산·품질관리 > 01 생산관리',u:[['0204010101_23v3','구매전략 수립',7],['0204010102_23v3','신규 공급자 발굴',5],['0204010103_23v3','공급자 육성',5],['0204010104_23v3','구매 발주관리',3],['0204010105_23v3','구매품 품질관리',4],['0204010106_23v3','개발구매',5],['0204010107_23v3','구매 원가관리',6],['0204010108_23v3','구매 원가 절감 실행',5],['0204010109_23v3','구매 계약',4],['0204010110_23v3','구매 성과관리',5],['0204010111_23v2','구매 리스크관리',7],['0204010112_23v1','공급자 관계관리',6]]},
+'02040103':{n:'공정관리',p:'02 경영·회계·사무 > 04 생산·품질관리 > 01 생산관리',u:[['0204010301_23v3','생산계획수립',7],['0204010302_23v3','공정설계',6],['0204010303_23v3','공정편성',5],['0204010304_23v3','작업계획수립',5],['0204010305_23v3','표준작업관리',4],['0204010306_23v3','공정품질관리',3],['0204010307_23v3','설비일상관리',3],['0204010308_23v3','설비보전관리',4],['0204010309_23v3','공정지표관리',5],['0204010310_23v3','공정개선',4],['0204010311_23v2','설비자산관리',5],['0204010312_23v1','생산정보시스템 운영관리',4],['0204010313_23v1','외주생산관리',5],['0204010314_23v1','설비효율관리',5]]},
+'02020201':{n:'인사',p:'02 경영·회계·사무 > 02 총무·인사 > 02 인사·조직',u:[['0202020101_23v3','인사기획',6],['0202020102_23v3','직무관리',5],['0202020103_23v4','인력채용',5],['0202020104_23v4','인력이동관리',5],['0202020105_23v3','인사평가',5],['0202020106_23v3','핵심인재관리',5],['0202020107_23v4','교육훈련운영',4],['0202020108_23v4','임금관리',5],['0202020109_23v5','급여지급',3],['0202020110_23v4','복리후생관리',4],['0202020111_23v3','조직문화관리',4],['0202020113_23v3','인사 아웃소싱',4],['0202020114_23v5','퇴직업무지원',3],['0202020115_19v4','전직지원',5]]},
+'02040302':{n:'수출입관리',p:'02 경영·회계·사무 > 04 생산·품질관리 > 03 물류무역관리',u:[['0204030201_24v2','수출입사전준비',3],['0204030202_24v3','수출입위험관리',4],['0204030204_24v2','수출입계약',5],['0204030205_24v2','수출입운송보험',3],['0204030208_24v3','수출마케팅',5],['0204030209_24v3','수입마케팅',5],['0204030210_24v3','수출통관',3],['0204030211_24v3','수입통관',3],['0204030212_24v3','수출대금결제',3],['0204030213_24v3','수입대금결제',3]]},
+'10010101':{n:'일반영업',p:'10 영업판매 > 01 영업 > 01 일반·해외영업',u:[['1001010103_20v2','영업 전략수립',5],['1001010104_20v2','영업 고객발굴',3],['1001010105_20v2','영업 제안',3],['1001010106_20v2','영업 계약체결관리',3],['1001010107_20v2','영업 계약이행관리',3],['1001010108_20v2','영업 성과관리',5],['1001010109_20v2','영업 고객불만관리',3],['1001010110_20v2','영업 고객유지관리',3],['1001010111_20v2','영업 환경분석',4]]},
+'10010102':{n:'해외영업',p:'10 영업판매 > 01 영업 > 01 일반·해외영업',u:[['1001010201_20v2','해외시장 조사',4],['1001010202_20v2','해외영업 상품 분석',4],['1001010203_20v2','해외마케팅 전략수립',6],['1001010204_20v2','해외 잠재고객 발굴',3],['1001010205_20v2','해외거래 제안',3],['1001010206_20v2','해외고객 협상',5],['1001010207_14v1','국제계약체결',5],['1001010208_20v2','해외영업 계약 이행 관리',2],['1001010209_14v1','해외 클레임 처리',4],['1001010210_20v2','해외고객 관리',5]]},
+'23010103':{n:'수질환경관리',p:'23 환경·에너지·안전 > 01 산업환경 > 01 수질관리',u:[['2301010301_24v3','수질환경관리 계획 수립',8],['2301010303_24v3','수질환경예측',6],['2301010304_24v3','하천·호소 수질관리',4],['2301010305_24v3','점오염원 관리',3],['2301010306_24v3','비점오염원 관리',5],['2301010307_24v3','수질 오염총량 관리',7],['2301010308_24v3','생태하천복원',6],['2301010309_24v3','수질오염 방제',4],['2301010310_24v2','물환경 조사',3],['2301010311_24v2','수생태계 조사',5]]},
+'23010104':{n:'정수시설운영관리',p:'23 환경·에너지·안전 > 01 산업환경 > 01 수질관리',u:[['2301010401_21v3','정수시설 관리계획 수립',7],['2301010402_21v3','표준정수처리 공정관리',5],['2301010403_21v3','정수장 수질관리',4],['2301010404_21v3','배출수처리시설 관리',4],['2301010405_21v3','안전·위기대응 관리',4],['2301010406_21v3','시료 측정분석',3],['2301010407_21v3','정수공정 운영실험',4],['2301010408_21v3','기계설비 관리',4],['2301010409_21v3','전기설비 관리',4],['2301010410_21v3','계측제어설비 관리',4],['2301010411_21v2','고도정수처리 공정관리',5]]},
+'23010201':{n:'대기환경관리',p:'23 환경·에너지·안전 > 01 산업환경 > 02 대기관리',u:[['2301020101_21v3','대기환경관리 대관업무',3],['2301020102_21v3','대기환경관리 계획수립',6],['2301020103_21v4','대기오염물질 측정분석',4],['2301020104_21v4','대기모델링과 영향평가',6],['2301020105_21v4','방지시설 설치',6],['2301020106_21v3','방지시설 운전 관리',5],['2301020107_21v3','악취관리',5],['2301020108_21v3','실내 공기질 관리',4],['2301020109_21v4','이동오염원 관리',3],['2301020110_21v3','미세먼지 관리',3],['2301020111_21v1','대기오염물질 총량관리',7]]},
+'23010302':{n:'폐기물관리',p:'23 환경·에너지·안전 > 01 산업환경 > 03 폐기물관리',u:[['2301030202_25v4','수집ㆍ운반',3],['2301030204_25v4','기계적 전처리',4],['2301030205_25v4','자원화',5],['2301030206_25v4','열적처리시설 관리',5],['2301030207_25v4','최종처분',5],['2301030208_25v4','유해 폐기물 안전관리',5],['2301030210_25v4','시설유지관리·평가',5],['2301030211_25v4','환경재난 대응',5],['2301030213_25v4','폐기물관리 계획 수립',5],['2301030214_25v4','폐기물관리 행정 업무',5],['2301030215_25v2','폐기물 조사분석',4]]},
+'23060102':{n:'전기안전관리',p:'23 환경·에너지·안전 > 06 산업안전보건 > 01 산업안전관리',u:[['2306010214_21v3','전기작업 안전관리',3],['2306010218_21v2','정전기 위험관리',5],['2306010219_21v2','전기 화재 위험관리',3],['2306010220_21v2','전기 방폭 관리',5],['2306010221_21v1','감전 위험관리',3]]},
+'23060201':{n:'산업보건관리',p:'23 환경·에너지·안전 > 06 산업안전보건 > 02 산업보건관리',u:[['2306020101_23v4','보건관리계획 수립 평가',5],['2306020102_23v3','산업보건관리체제 확립',4],['2306020103_23v3','산업재해관리',4],['2306020105_23v4','위험성평가(보건분야)',4],['2306020106_23v4','작업환경관리',3],['2306020107_23v4','작업관리',4],['2306020108_23v4','건강관리',4],['2306020109_23v4','응급조치',4],['2306020110_23v4','사업장 건강증진',5],['2306020111_23v3','사업장 산업보건교육',4],['2306020113_23v3','보건관련 문서관리',3]]},
+'20010703':{n:'인공지능모델링',p:'20 정보통신 > 01 정보기술 > 07 인공지능',u:[['2001070301_23v2','인공지능 모델 문제 정의',6],['2001070302_23v2','인공지능 모델 준비',5],['2001070303_23v2','인공지능 데이터 확보',5],['2001070304_23v2','인공지능 데이터 전처리',5],['2001070305_23v2','인공지능 데이터 특징 추출',5],['2001070306_23v2','인공지능 모델 학습',5],['2001070307_23v2','인공지능 모델 선정',5],['2001070308_23v2','인공지능 모델 활용 관리',5],['2001070309_23v1','인공지능 데이터 품질 검증',5]]},
+'20010105':{n:'빅데이터분석',p:'20 정보통신 > 01 정보기술 > 01 정보기술전략·계획',u:[['2001010509_21v4','빅데이터 분석 결과 시각화',6],['2001010510_21v4','분석 데이터 전처리',5],['2001010511_21v4','탐색적 데이터 분석',6],['2001010512_21v1','분석 데이터 피처(Feature) 엔지니어링',7],['2001010513_21v1','빅데이터 분석 모델링',7],['2001010514_21v1','빅데이터 분석 결과 평가',7],['2001010515_21v1','빅데이터 분석 플로우 구성',7],['2001010516_21v1','데이터 분석 기초 기술 활용',5]]},
+'20010601':{n:'정보보호관리·운영',p:'20 정보통신 > 01 정보기술 > 06 정보보호',u:[['2001060101_19v2','정보보호 거버넌스 구현',8],['2001060103_19v2','정보보호 정책 기획',7],['2001060105_19v2','보안 위험관리',7],['2001060106_19v2','정보보호 계획 수립',6],['2001060108_19v3','네트워크 보안 운영',5],['2001060109_19v3','애플리케이션 보안 운영',5],['2001060110_19v3','시스템 보안 운영',5],['2001060111_19v3','관리적 보안 운영',5],['2001060112_19v3','물리 보안 운영',5],['2001060113_19v3','보안 장비 운용',3],['2001060114_19v3','보안성 검토',7],['2001060115_19v3','내부 보안 감사 수행',7],['2001060116_19v2','협력사 보안 관리',6]]},
+'02030201':{n:'회계·감사',p:'02 경영·회계·사무 > 03 재무·회계 > 02 회계',u:[['0203020101_20v4','전표관리',2],['0203020102_20v4','자금관리',2],['0203020103_20v4','원가계산',2],['0203020104_23v5','결산처리',2],['0203020105_20v4','회계정보시스템 운용',2],['0203020107_20v4','회계감사',5],['0203020108_20v4','사업결합회계',6],['0203020109_20v4','비영리회계',4],['0203020110_20v2','원가관리',3],['0203020112_23v5','재무제표작성',3]]},
+'02030101':{n:'예산',p:'02 경영·회계·사무 > 03 재무·회계 > 01 재무',u:[['0203010101_20v3','예산편성지침 수립',4],['0203010102_20v3','부문예산 수립',4],['0203010103_20v3','연간 종합예산 수립',5],['0203010104_20v3','추정재무제표 작성',3],['0203010105_20v3','확정 예산 운영',3],['0203010106_20v3','예산 실적 관리',4],['0203010107_20v3','예산 위험 관리',6]]},
+'02030102':{n:'자금',p:'02 경영·회계·사무 > 03 재무·회계 > 01 재무',u:[['0203010201_20v3','자금계획 수립',6],['0203010202_20v3','자금조달',5],['0203010204_20v3','자금운용',4],['0203010205_20v3','자금정보제공',3],['0203010206_20v3','재무위험관리',5],['0203010207_20v3','성과 분석',6]]},
+'20010301':{n:'IT시스템관리',p:'20 정보통신 > 01 정보기술 > 03 정보기술운영',u:[['2001030101_19v3','IT시스템 운영 기획',7],['2001030102_19v3','IT시스템 자원획득관리',6],['2001030103_19v3','IT시스템 서비스 수준관리',5],['2001030105_19v4','응용SW 운영관리',3],['2001030107_19v4','NW 운영관리',3],['2001030108_19v3','DB 운영관리',5],['2001030109_19v3','보안 운영관리',5],['2001030111_19v4','IT시스템 통합운영관리',3],['2001030112_19v4','IT시스템 통합운영안정성관리',5],['2001030113_19v4','응용SW 변경관리',5],['2001030114_19v4','HW 단말장치 운영관리',3],['2001030115_19v4','IT시스템 서버 운영관리',5],['2001030116_19v4','NW 유지보수',4],['2001030117_19v4','서비스데스크 구축',4],['2001030118_19v4','서비스데스크 운영',3],['2001030119_19v4','IT시스템 변경관리',4]]},
+'20010303':{n:'IT기술지원',p:'20 정보통신 > 01 정보기술 > 03 정보기술운영',u:[['2001030301_25v4','기술지원 서비스 기획',7],['2001030302_25v4','기술지원 대상 인수',6],['2001030303_25v4','기술지원 요청 관리',2],['2001030304_25v5','시스템 장애 대응',4],['2001030305_25v5','시스템 개선 대응',5],['2001030306_25v4','시스템 점검관리',3],['2001030307_25v5','기술지원 평가',6],['2001030308_25v4','기술지원 이슈관리',6],['2001030309_25v5','시스템 형상관리',4],['2001030311_25v5','기술지원 품질계획 수립',6],['2001030312_25v5','기술지원 품질운영',3],['2001030313_25v3','시스템 유지보수관리',3]]}
+};
+/* 직무 → NCS 대응. mode: 직접 대응 / 복수 능력단위 조합 / 부분 대응 / 공식 매핑 미확인 / 미조사 */
+const JMAP={
+'RD-MED-01':{m:'직접',c:['19030904']},
+'RA-MED-01':{m:'직접',c:['19030902']},
+'QA-VAL-01':{m:'직접',c:['19030901']},
+'RD-FPCB-01':{m:'직접',c:['19030501']},
+'PR-FPCB-01':{m:'조합',c:['19020202','02040103']},
+'PR-INJ-01':{m:'직접',c:['17040105']},
+'PR-MEM-01':{m:'부분',c:['17010203'],note:'분리막 제막 고유 공정은 기업 고유 역량으로 보완'},
+'PR-PLN-01':{m:'직접',c:['02040103']},
+'PR-EQP-01':{m:'부분',c:['02040103'],note:'설비일상관리·설비보전관리 능력단위만 해당'},
+'QA-QMS-01':{m:'조합',c:['02040201','19030901']},
+'QA-INS-01':{m:'부분',c:['02040201'],note:'품질검사관리·현장품질관리 능력단위만 해당'},
+'QA-REL-01':{m:'부분',c:['02040201'],note:'신뢰성관리 능력단위만 해당'},
+'QA-WTR-01':{m:'부분',c:['23010104'],note:'시료 측정분석 능력단위만 해당'},
+'SC-PUR-01':{m:'직접',c:['02040101']},
+'SC-TRD-01':{m:'직접',c:['02040302']},
+'SL-TEC-01':{m:'부분',c:['10010101'],note:'필터·멤브레인 제품 기술지식은 기업 고유 역량으로 보완'},
+'SL-EL-01':{m:'직접',c:['10010102']},
+'SL-MED-01':{m:'부분',c:['10010101'],note:'의료기기 학술·규제 지식은 기업 고유 역량으로 보완'},
+'RA-DOC-01':{m:'부분',c:['19030902'],note:'기술문서준비 능력단위 중심'},
+'RA-CRT-01':{m:'부분',c:['19030501'],note:'부품 인증 획득 능력단위 중심'},
+'ES-ENV-01':{m:'조합',c:['23010201','23010103','23010302']},
+'ES-ELE-01':{m:'직접',c:['23060102']},
+'ES-SAF-01':{m:'직접',c:['23060201']},
+'MG-HR-01':{m:'직접',c:['02020201']},
+'IT-AI-01':{m:'조합',c:['20010703','20010105']},
+'IT-SEC-01':{m:'직접',c:['20010601']},
+'IT-MES-01':{m:'부분',c:['02040103'],note:'생산정보시스템 운영관리 능력단위 중심'},
+'RD-WTR-01':{m:'부분',c:['23010104'],note:'막여과 공정 설계는 기업 고유 역량으로 보완'},
+'SC-MAT-01':{m:'직접',c:[],note:'02040102 자재관리 (능력단위 미수집)'},
+'MG-STR-01':{m:'직접',c:[],note:'02010101 경영기획 (능력단위 미수집)'},
+'MG-GA-01':{m:'부분',c:[],note:'02020101 총무 (능력단위 미수집)'},
+'ES-ESG-01':{m:'부분',c:[],note:'23010202 온실가스관리 (능력단위 미수집)'},
+'RD-MEM-01':{m:'미확인',c:[],note:'NCS 604개 세분류 전수 검색 결과 분리막·멤브레인 세분류 없음 → 기업 고유 역량으로 관리'},
+'RD-EQP-01':{m:'미확인',c:[]},
+'SL-PRJ-01':{m:'미확인',c:[]},
+'SL-CS-01':{m:'미확인',c:[]},
+'MG-FIN-01':{m:'조합',c:['02030201','02030101','02030102']},
+'MG-IR-01':{m:'부분',c:['02030201'],note:'IR·공시 전용 NCS 세분류는 존재하지 않음. 재무제표작성·결산처리 능력단위 중심이며 공시·IR 실무는 기업 고유 역량으로 보완'},
+'IT-INF-01':{m:'조합',c:['20010301','20010303']}
+};
+const MODE={'직접':['직접 대응','b-fact'],'조합':['복수 능력단위 조합','b-fact'],'부분':['부분 대응','b-infer'],'미확인':['공식 매핑 미확인','b-check'],'미조사':['미조사','b-check']};
+const jmap=id=>JMAP[id]||{m:'미조사',c:[]};
+
+/* NCS 능력단위 수행준거 원문에서 추출한 K·S·A (ncs.go.kr, 2026-10-06 확인)
+   출처: NCS 능력단위 상세 리포트의 【지식】【기술】【태도】 원문. 9개 세분류 × 핵심 능력단위 4개 = 36개 단위 */
+const KSA={
+ '19030902':{'01':{d:'인허가정보수집이란 의료기기의 인허가를 수행하기 위하여 국가별 인허가절차를 입수하고 최신 인허가정보 적용방안을 수립하며 제품 적용여부를판단하는 능력이다.',K:['국가공인시험기관, 의료기기관련협회, 인허가 조직 관련 정보','인허가 절차, 규격, 법령, 제도','제품 적용 등급에 대한 지식','최신 인허가 정보','인허가 프로세스에 대한 이해','국가별 의료기기 관련법규'],S:['인허가 절차, 규격, 법령, 제도 수집 능력','제품 적용여부 판단 능력','정보보고서 작성 능력','최신 인허가 정보의 변경사항 수집 능력','제품 및 프로세스 적용방안 수립 능력','의료기기 여부 판단 능력'],A:['인허가 절차, 규격, 법령, 제도를 꼼꼼하게 수집하려는 자세','유관기관을 통하여 정확하게 확인하려는 자세','정보보고서를 논리적으로 작성하려는 자세']},'05':{d:'기술문서작성이란 인허가를 위해 필요한 자료들을 파악하고 수집하여 기술문서(Technical File)을 작성하는 능력이다.',K:['기술심사문서 가이드라인에 대한 지식','기술문서 항목에 대한 지식','첨부문서 항목에 대한 지식','기술문서 목록에 대한 지식','기술문서 작성 방법','안정성 및 유효성에 대한 지식'],S:['가이드라인 입수 능력','가이드라인 검토 능력','기술문서 항목 파악 능력','첨부문서 항목 파악 능력','기술문서 목록 정리 능력','자료 요청 능력'],A:['적극적으로 가이드라인을 입수하려는 노력','꼼꼼하게 가이드라인을 검토하려는 자세','필요한 기술문서 항목을 파악하려는 자세']},'08':{d:'인허가심사란 인허가를 위해 인허가에 필요한 문서를 작성하고, 유관기관에 신청하고, 인허가에 필요한 대응을 하는 능력이다.',K:['국가별 인허가 요구사항','인허가문서 작성절차','표준화된 문서서식에 대한 지식','인허가 절차','국가별 인허가 담당기관','인허가 보완요구사항'],S:['국가별 인허가 요구사항 파악 능력','인허가문서 작성방안 수립 능력','인허가문서 작성 능력','인허가 신청계획 수립 능력','인허가 신청 능력','인허가 보완사항 입수 능력'],A:['국가별 인허가 요구사항을 꼼꼼하게 파악하려는 자세','표준화된 서식에 맞춰 체계적으로 문서를 작성하려는 자세','유관부서와 유기적으로 협조하려는 자세']},'10':{d:'인허가 사후관리란 의료기기 인허가에 대한 유효성이 유지될 수 있도록변경법규를 파악하고, 설계변경에 대응하고, 인허가를 변경하며, 사후관리에 대응하는 능력이다.',K:['의료기기관련 법령 및 규격','변경사항 수행절차','규격변경내용','인허가 변경 수행절차','기술문서에 대한 지식','인허가 승인서에 대한 지식'],S:['변경사항 파악 능력','해단제품 적용여부 파악 능력','정보보고서 작성 능력','전달교육 실시 능력','인허가 변경사항 파악 능력','변경업무 수행 능력'],A:['변경사항을 꼼꼼하게 확인하려는 자세','해당제품의 적용여부를 정확하게 파악하려는 태도','유관부서와 정보를 공유하려는 자세']}},
+ '19030904':{'01':{d:'의료기기 연구개발기획은 연구개발 기획서 작성에 필요한 시장 조사 및기술 분석, 타당성을 확인하는 능력이다.',K:['의료기기 국내외 규격 정보','의료 산업에 대한 전반적인 지식','의료기기 국내외 제품 정보','상용 제품의 개발동향에 대한 정보','기초 의료공학 지식','기초 마케팅 지식'],S:['정보 검색 능력','정보 분석 능력','특허 검색 기술','특허 비교 능력','원가 분석 기술','기획 타당성 판단 능력'],A:['유관 부서와 원활하게 의사소통하려는 자세','다양한 자료를 수집하려는 적극적 자세','고객의 요구사항을 적극적으로 반영하려는 태도']},'02':{d:'의료기기 개발 계획 수립은 현재 보유한 자원을 분석하여 기술규격과 품질수준을 결정하여 개발 계획서를 작성하는 능력이다.',K:['전자공학 지식','의료공학 지식','의료기기 국내외 제품 정보','의료기기 기술동향','개발 제품의 기술동향 정보','임상 정보 자료'],S:['제품 성능 비교 능력','특허 검색 기술','정보 검색 기술','기술 규격서 작성 능력','기술 분석 능력','기술문서 작성 능력'],A:['기술정보에 대해 활발하게 정보를 교류하려는 자세','다양한 자료를 수집하려는 적극적 자세','객관적으로 자료를 분석하려는 태도']},'03':{d:'의료기기 개발 위험관리는 개발 과정에서 예상되는 위험요소를 파악하여산출하고 위험요소에 대해 평가, 통제하여 위험관리 보고서를 작성하는 능력이다.',K:['의료기기 국내외 규격 정보','의료기기 관련 법규','의료기기 위험관리 가이드라인','의료기기 안전관리학'],S:['정보 검색 능력','위험요소 수준 설정 능력','자원 배분 능력','위험요소 목록화 능력','위험요소 분석 능력','자료 처리 능력'],A:['유관 부서와 원활하게 의사소통하려는 자세','다양한 자료를 수집하려는 적극적 자세','위험요소를 다각적 시각으로 보려는 자세']},'09':{d:'의료기기 개발문서 작성관리란 개발에 필요한 일련의 문서를 담당하며 기술 결과보고서, 인허가 기술문서 지원, 사용자 설명서, 개발 이력문서, 품질관리 기술문서 작성을 수행하는 능력이다.',K:['의료기기 가이드라인','의용전자공학 지식','의용기계공학 지식','의료용 소프트웨어 지식','의료기기학 지식','의료공학 지식'],S:['정보 검색 능력','분야별 기술 분석 능력','개발 단계별 관리 능력'],A:['간단명료하고 정확하게 작성하려는 태도','다양한 자료를 수집하려는 적극적 자세','이해하기 쉽도록 작성하려는 자세']}},
+ '19020202':{'01':{d:'전자부품 생산기술지원이란 생산을 원활하게 하기 위하여 생산기술을 검토하고 생산장비와 작업지시서를 관리하는 능력이다.',K:['전자부품 기술자료','전자부품 특성','설비공정 작업 방법','계측장비 관리 방법','치공구에 대한 지식','검교정 방법 및 절차'],S:['기술자료 검토능력','전자부품특성 분석능력','설비, 치공구, 재료 분석능력','보조장비 설계, 제작, 개선 능력','생산장비 활용 능력','성능 시험 수행 능력'],A:['문제점을 철저하게 분석하려는 자세','실현가능한 개선방안을 수립하려는 자세','생산장비를 효율적으로 사용하려는 자세']},'02':{d:'전자부품 생산관리란 전자부품의 수량, 납기, 품질을 충족시키기 위하여생산정보를 기반으로 생산계획을 수립하고 생산실적을 관리하는 능력이다.',K:['생산재고, 자재현황','생산관리 프로그램','판매계획 및 수요예측에 대한 지식','생산부품에 대한 지식','생산라인, 작업자, 원자재에 대한 지식','판매계획에 대한 지식'],S:['생산관리 프로그램 운영 능력','완제품, 가용자재, 불용자재 파악 능력','생산계획 관리 능력','전자부품 생산량 결정 능력','생산계획서 작성 능력','생산일정 협의 능력'],A:['정보를 유관부서와 공유하려는 자세','생산계획을 철저하게 관리하려는 자세','고객의 요청사항에 적극적으로 수용하려는 자세']},'05':{d:'전자부품 공정관리란 전자부품 생산활동에 필요한 생산공정을 효율적으로활용하기 위해 공정을 설계하고 공정성능을 관리하며 개선하는 능력이다.',K:['제품제조공정','보유설비현황','공정에 대한 지식','생산라인 배치방식','생산 표준시간','공정관리 방법'],S:['공정성능 목표수립 능력','공정설계 능력','생산부품 설계도면 판독 능력','양산성 평가 능력','일정관리 능력','표준시간 설정 능력'],A:['공정설계기준을 준수하려는 자세','합리적으로 공정설계를 하려는 자세','도면 및 규격서를 세밀하게 검토하려는 자세']},'09':{d:'전자부품 품질관리란 전자부품의 품질을 확보하기 위하여 품질개선 계획을 수립하고 부품검사와 부적합품 관리를 통해 품질요구사항을 만족시키는 능력이다.',K:['품질관리 방법','품질검사 실무','반제품에 대한 지식','품질비용 관리 방법','자재, 반제품, 완제품','제품에 대한 수리에 대한 지식'],S:['생산부품의 합·부 판정 기술','측정기기 사용 능력','품질관리계획서 작성 능력','품질비용 산출 능력','품질검사 부적합품 판정 능력','신뢰성 시험장비 활용 능력'],A:['품질관리계획을 정확하게 수립하려는 자세','품질목표를 명확하게 설정하려는 자세','품질비용을 꼼꼼하게 분석하려는 자세']}},
+ '02040201':{'07':{d:'공정품질관리란 공정의 안정성을 확보하기 위해 중점관리항목 선정, 관리도 작성, 공정능력 평가 업무를 수행하는 능력이다.',K:['MSA, 데이터 분석 방법 이해','Process Map, QFD, FMEA, X&Y 매트릭스 등 툴 활용 지식','QC공정도, 공정관리 계획서에 대한 지식','공정변동의 이해','모집단구성, 표본크기, 샘플링방법, 군구분, 검정방법 이해','측정시스템의 이해'],S:['X&Y 매트릭스, 데이터 분석 능력','QC공정도, 공정관리 계획서 작성 기술','고객의 니즈와 클레임 분석','모집단구성, 표본크기, 군구분, 샘플링방법, 검정능력','생산공정 중 품질관리 능력','측정시스템 분석 능력'],A:['제시된 품질기준을 지키려는 책임감','제품의 성능향상을 위해 단위부품의 품질을 중요시 여기는 태도','품질을 중요하게 여기는 태도']},'08':{d:'품질검사관리란 품질기준의 일치여부를 확인하기 위해 검사체계를 정립,품질검사의 실시, 측정기를 관리하는 능력이다.',K:['기술(검사)표준의 이해','검사 프로세스에 대한 지식','검사계획의 이해','검사표준의 이해','검사기법','샘플링 이론'],S:['검사계획 수립 능력','검사기준 작성 능력','검사방법 개발 능력','부적합품 처리 능력','측정기 작동 기술','필요 측정기 선정 능력'],A:['고객만족 의식','고객중심 사고','검사기준 준수']},'10':{d:'품질보증체계확립이란 고객만족을 보증하기 위해 품질보증체계를 정립,운영하고 이에 대한 유효성을 평가하는 능력이다.',K:['품질보증체계 관련 국제표준','프로세스 접근 방법에 대한 지식','사내표준화 지식','품질기능전개(QFD)/품질기능비용전개(QFCD) 이해','잠재적인 고장형태 및 영향 분석(FMEA)의 이해','리더십 이론'],S:['프로세스 전개 능력','품질기능전개(QFD)/품질기능비용전개(QFCD) 운용 능력','잠재적인 고장형태 및 영향 분석(FMEA) 운용 능력','사내표준화 능력','단계별 품질보증 활동 전개 능력','단계별 품질보증 활동 진단 능력'],A:['프로세스 접근 방법적인 사고','고객중심 사고','시스템적 사고']},'16':{d:'품질경영시스템 인증 관리란 품질전략 실현을 위해 품질경영시스템 인증을 준비하여 품질경영시스템을 구축, 인증을 시행하는 능력이다.',K:['경영전반에 대한 이해(품질경영방침)','품질경영시스템 요구사항 이해','품질경영시스템 관련 국제표준 이해','품질보증활동 이해','리스크 매니지먼트의 이해','기본표준 이해'],S:['품질정보 및 예측 기법 분석 능력','교육 계획 수립 및 운영 능력','품질경영 현황 파악 능력','표준 체계 분류 능력','프로세스 전개 능력','사내표준화 능력'],A:['사실적 접근방법에 기반을 둔 사고','원칙을 지키려는 노력','부서와의 긴밀한 관계를 유지하려는 태도']}},
+ '02040101':{'01':{d:'구매전략 수립이란 구매품의 특성을 고려하여 구매 방향을 설정하고, 기업의 경영전략에 부합하는 구매조달을 위해 조달방법 의사결정과 구매품 특성별 구매전략을 수립하는 능력이다.',K:['구매 지출 분석/공급시장 정보/산업정보','경제성 분석에 대한 이해','데이터/정보의 객관성 확보를 위한 통계분석 방법','전략적 사업계획과 구매품 조달방법의 연계성','조달방법 의사결정 절차 및 규정','경영전략과 사업계획에 따른 구매 관련 KPI 지식'],S:['구매품별 조달방법에 대한 보고서 작성 기술','구매품별 조달방법에 대한 우수 선진 조직 벤치마킹 능력','사업계획에 따른 조달방법 분석 및 도출 능력','조달방법 경제성 분석 능력','정보시스템 및 데이터베이스 활용 능력','구매품별 특성에 대한 보고서 작성 능력'],A:['데이터/정보의 객관성 확보를 위한 노력','사업전략과 조달방법을 연계하려는 체계적인 노력','경영전략 및 경영계획과 부합하는 구매전략을 수립하려는 의지']},'04':{d:'구매 발주관리란 생산 목표를 달성하기 위해 발주 사전정보의 수집 및 분석, 구매품 발주 및 진척 관리를 수행하는 능력이다.',K:['구매품 기술에 대한 이해','자재 관련 업계 동향에 대한 이해','발주 시점 관리 및 자재 표준화에 대한 이해','구매 발주방법','구매품의 특성에 대한 이해','생산계획 및 발주 계획에 대한 이해'],S:['구매관리 관련 국내외 최고수준 파악 및 비교 능력','도면 해독 능력','부하 공수 분석 능력','시장 분석을 통한 공급자 조사 능력','자재별 ABC 분석 기술','정보수집 활용기술'],A:['상황을 객관적이고 분석적으로 사고하려는 노력','납기 일정을 합리적으로 판단하려는 노력','조사 분석에 정확성을 기하려는 노력']},'05':{d:'구매품 품질관리란 구매 품질관리 비용을 최소화하기 위해 구매품 품질관리 체계를 수립하여 구매품 품질을 검사하며 구매 부적합품에 대한 조치 및 피드백을 제공하는 능력이다.',K:['구매품 품질 시스템에 대한 이해','구매품의 품질에 대한 이해','구매품 품질 관리에 대한 이해','상호품질 보증인증 제도','ISO 표준규격','구매품 품질 최종 검수 방법'],S:['구매품 품질관리 체계 수립 능력','설계도면 해석 능력','품질요구사항을 조사할 수 있는 정보파악 능력','시장조사 및 분석 능력','구매품 검사 및 평가의 기준 작성 능력','구매품 품질평가 능력'],A:['품질방침을 공급자와 공유하려는 노력','품질관리 기준을 준수하려는 의지','조사 분석에 정확성을 기하려는 의지']},'09':{d:'구매 계약이란 각종 구매 관련 협의사항에 대한 합의와 공급자와 발생할 수 있는 위험을 제거하기 위해 협상 전략 계획 수립과 협상 실시를 통해 계약을 체결하는 능력이다.',K:['구매품의 특성에 대한 이해','구매원가 계산 또는 해석에 대한 이해','재무제표에 대한 이해','공급자 관리의 개념 및 프로세스에 대한 이해','독점규제 및 공정거래에 관한 법률','사례분석 기법'],S:['구매관리 관련 국내외 최고수준 파악 및 비교 능력','구매품의 특성 파악 및 방법 선택 능력','구매 규모에 따른 책임 범위 설정 능력','관련 사례의 종합적 분석 능력','정보시스템 및 데이터베이스 활용 능력','원재료 트렌드와 연계한 가격관리 및 조정 능력'],A:['조직의 목표와 연계된 협상 전략을 수립하려는 체계적인 관리 노력','협상목표에 대한 객관적인 시각 유지','고도의 윤리적 사명감을 바탕으로 공정한 거래 협상을 체결하려는 의지']}},
+ '10010101':{'03':{d:'영업 전략수립이란 영업 환경분석 결과를 바탕으로 영업 전략 방향과 영업 목표를 설정하여 실행항목을 정의하고 운영계획을 수립하는 능력이다.',K:['외부환경분석에 대한 이해','자회사와 타회사의 경쟁력에 대한 이해','SWOT에 대한 이해','고객 유형에 대한 이해','영업 전략에 대한 이해','영업 목표에 대한 이해'],S:['정보수집기술','SWOT 작성 기술','업무 우선순위 설정','목표 고객 설정 능력','손익 목표 수립 능력','전략수립 능력'],A:['정보 분석에 대한 객관성','강점/약점, 기회/위험 판단에 대한 타당성','다양한 의견을 수용할 수 있는 개방적 자세']},'04':{d:'영업 고객발굴이란 고객 상담 계획을 수립하고 다양한 고객 상담 수단을 통하여 고객을 발굴하는 능력이다.',K:['상품 특성 이해','상담 관련 지식','개인정보보호에 대한 지식','고객의 구매사유','원가계산','고객 협상 이론'],S:['자료 수집 능력','고객 상담 능력','스토리텔링 기법','개선효과 설명능력','상담 및 응대 기술','주변에서 중심으로 좁혀가는 대화기술'],A:['시장변화에 민첩한 대응','유연한 인간관계','적극적인 마음가짐']},'05':{d:'영업 제안이란 계약 체결을 위하여 고객이 요구하는 조건에 맞는 상품을 제안하는 능력이다.',K:['원가, 비용 구조에 대한 지식','검토 절차에 대한 지식','고객상담 결과','거래 조건에 따른 장·단점에 대한 지식','제안서 내용에 대한 지식','기본 상관습에 대한 지식'],S:['수익 분석 기술','비즈니스 문서 작성 기술','제안서 내용 검토 및 분석기술','협상능력','제안서 작성 능력','논리적이고 명확한 문장 작성능력'],A:['데이터를 바탕으로 한 분석적 사고','신속하고 정확한 업무 처리 자세','요구사항의 상이한 부분을 협의할 수 있는 열린 자세']},'09':{d:'영업 고객불만관리란 고객 이탈을 방지하고 상품을 개선하기 위하여 불만사항 해결 과정을 관리하는 능력이다.',K:['고객관계관리(CRM) 이론','고객의 소리(VOC)','상품특성 이해','제조물책임법','소비자기본법','통계적 이론'],S:['정보수집능력','클레임 접수 능력','자료관리 활용능력','정보분류능력','통계적 분석 능력','법해석 능력'],A:['원데이터를 계량화 하는 자세','불만사항을 해결하고자 하는 자세','계량화한 정보를 종합적으로 분류하려는 태도']}},
+ '23010201':{'01':{d:'대기환경관리 대관업무란 사업장 관리 과정에서 발생하는 대기환경오염 문제를 해결하기 위한 업무를 수행하는 능력이다.',K:['대기환경 관련법규','대기환경과 관련된 전문용어(광화학반응, 2차 오염, 산성비, 오존층 파괴, 미세먼지)','물리, 화학, 생물 등 기초 과학','행정조직 업무처리 기본흐름','대기환경 규제와 지원 내용','대기오염 사건 사례와 피해 특성'],S:['상황에 일치하는 법규 및 행정 절차 파악능력','효율적인 홍보기술','대관, 대민 갈등 해결기술','대기오염 정보수집능력','발생원별 저감 대책 파악능력'],A:['환경규제와 규제기관의 입장을 바로 파악하려는 자세','조직의 주장을 제대로 전달하려는 자세','민원인의 입장을 적극적으로 이해하려는 태도']},'02':{d:'대기환경관리 계획수립이란 기업의 경제활동 및 시설에 대한 경제성을 평가하여 대기환경관리 행정목표를 달성할 수 있도록 계획을 수립하는 능력이다.',K:['경제성분석에 필요한 제반 변수','변수 변동별 분석 시나리오를 설정하는 방법','거시경제 변수 설정 방법과 경제성 공학 측면의 접근지식','시나리오별 비용과 편익에 대한 현재 가치법 적용 방법','편익의 질을 양으로 전환하는 방법','경제성 분석의 기대효과와 한계파악'],S:['현재가치 추정법 분석 기술','내부수익률 도출 기술','거시변수 전망과 선정 능력','대기규제 관련법규 및 관계 기관 동향 파악기술','행정 시스템 유지보수 및 피드백 시스템 구축 기술','여론 수집 방법 및 분석 기술'],A:['경제적 원칙에 입각한 합리적인 자세','분석결과의 문제, 평가를 적극 수용하려는 자세','환경문제의 중요성을 인식하고 적극적으로 대처하려는 자세']},'03':{d:'대기오염물질 측정분석이란 대기오염물질 배출시설에 대한 배출특성을 파악하여 측정분석계획을 수립하고, 공정시험기준에 따라 대기오염물질을 측정·분석하는 능력이다.',K:['측정기기 형식 승인 및 정도 검사','측정 대상 오염물질에 대한 종류 및 물성','측정 대상 오염물질의 생성 원리 및 발생량 통계','측정 장소에 따른 이동, 보안, 안전 규칙','가스상 물질 및 입자상 물질에 대한 시료채취 방법 구분','시료 채취를 위한 각 구성 원리 및 채취 원리'],S:['분석 계획 문서화 능력','검사 장비 운영 및 관리 기술','시료 채취 구성품에 대한 선정 기술','시료 채취 구성품 사용 및 관리 기술','시료채취시 시료의 대표성 확보할 수 있는 채취 기술','시료채취장비의 운영 기술'],A:['측정 현장에서의 적극적인 태도','공정시험기준을 준수하려는 의지','시료채취 지점에 대표성을 확인하려는 의지']},'06':{d:'방지시설 운전 관리란 최적운영조건 도출을 통하여 대기오염 방지시설이 설계 목표와 관련 법규에 맞도록 유지 관리하는 능력이다.',K:['대기환경보전법 등 관련 법규','유량, 온도, 습도, 농도를 이해하고 환산할 수 있는 공학적 지식','발생원별 처리대상 물질의 성상을 파악할 수 있는 지식','처리대상 물질의 처리 후 오염물질 특성을 파악할 수 있는 지식','오염물질 제거관련 물리적, 화학적 원리','방지시설의 특성 및 기능'],S:['설계도서 활용 능력','규제 준수 계획서 작성능력','방지시설 효율 계산능력','운전 유지 관리 방안 작성 능력','예비품 사용 방안 작성능력','스프레드 시트 활용능력'],A:['규제목표를 명확히 이해하고 이를 지키려는 태도','대기오염물질의 인체 영향을 파악하고 보호하려는 태도','관련 법규를 준수하려는 태도']}},
+ '02020201':{'02':{d:'직무관리란 직무를 기반으로 한 인력관리를 위해 직무를 분석·설계하고, 직무평가를 실시하며, 필요시 기존 직무분류 체계를 유지보수하는 능력이다.',K:['직무조사 방법','직무분류체계','직무평가 도구와 방법','직무기반 인사제도 설계 방법','조직의 전략방향'],S:['직무조사 질문지 설계 기술','직무분류체계 구성 기술','직무기술서 작성 기술','적극적 참여를 유도하는 촉진(Facilitating) 능력','직무평가 관련 자료 조사 및 분석 능력'],A:['조직에 가장 적합한 직무분석을 수행하려는 의지','관찰적 자세','특정 직무를 차별하지 않는 공정한 자세']},'03':{d:'인력채용이란 조직에 적합한 인재를 확보하기 위하여 계획수립, 모집, 선발, 채용 후 사후관리를 수행하는 능력이다.',K:['노동법','채용요건 설정을 위한 직무분석법','구인구직 환경변화와 채용트렌드','선발평가기법','조직의 이해','홍보 매체 활용'],S:['채용프로세스와 일정 등 채용계획서 작성기술','채용솔루션 활용기술','인력운영계획 수립능력','직무기술서와 채용공고 작성기술','평가도구 제작기술','평가도구 활용기술'],A:['필요한 인재를 정확하게 정의하고자 하는 의지','필요한 인재채용을 위해 최선의 실행방안을 찾는 자세','기존의 시도를 분석하고 개선하려는 자세']},'05':{d:'인사평가란 조직의 성과 향상과 조직구성원의 능력을 제고하기 위하여 평가계획수립, 평가목표설정, 평가교육, 인사평가를 수행하는 능력이다.',K:['조직 비전체계','평가기법','평가도구','평가자 오류 유형','역량모델링','경력개발방법론'],S:['평가지 설계기술','평가 결과 분석 능력','평가자 오류 방지 통계처리 기술','기획력','분석력','성과관리지표 설계 기술'],A:['평가제도 개선에 대한 문제의식','제도 개선을 위한 적극적 사고','수렴된 의견을 객관적으로 검토하려는 자세']},'07':{d:'교육훈련운영이란 인력육성 방향성에 따라 연간 교육계획을 수립하여 교육 훈련과정의 기획, 운영, 평가를 통해 조직구성원의 역량개발을 지원하는 능력이다.',K:['직무분석법','역량 모델링 방법','CDP(Career Development Program) 설계 및 운영 방안','연간 교육계획 수립 방법','교육예산 수립 방법','인력육성체계 수립방법'],S:['교육요구분석 기술','역량모델링 기술','교육체계도 작성기술','교육예산 수립능력','교육과정 설계 기술','환급교육과정 운영 기술'],A:['전략적인 마인드를 개발하려는 의지','고객지향성 유지','분석적 자세']}},
+ '20010703':{'01':{d:'인공지능 모델 문제 정의란 인공지능 서비스를 위한 모델링 목표를 설정하고 요구사항을 분석하여 해결 가능한 인공지능 후보 모델을 도출하는 능력이다.',K:['인공지능을 구분하는 시스템 범주 유형과 개념','인공지능 서비스의 특징','인공지능 문제 해결 사례','인공지능 수치화를 통한 통계적 접근 방법','인공지능 서비스의 문제 표현 방법','인공지능 모델과 관련된 요구사항 분석 사례'],S:['인공지능 문제의 특징을 명확히 분리할 수 있는 기술','인공지능 문제의 특징에 따라 문제 해결 방법을 탐색할 수 있는 기술','인공지능 문제를 정의할 수 있는 능력','인공지능 서비스의 요구 사항 분류 및 구조화 기술','도식화 결과를 활용한 요구사항 정의서 작성 기술','기능, 비기능적 요구사항을 도출하는 기술'],A:['인공지능 모델 사례를 배우려는 적극적인 노력','인공지능 서비스 목표 설정을 위한 체계적인 사고','요구사항의 정확성과 완전성을 확보하려는 의지']},'04':{d:'인공지능 데이터 전처리란 인공지능 서비스를 위하여 확보된 데이터를 정제, 변환, 통합, 축소, 라벨링, 비식별화를 통해 데이터를 가공하는 능력이다.',K:['유형별 데이터 처리 기법','메타데이터 활용 방법론','기술 통계론','인공지능 윤리 가이드북','인공지능 FATE 지식','인공지능 모델 학습 과대적합 및 과소적합 회피 방법론'],S:['전처리 실행도구 사용기술','데이터 품질 분석 능력','데이터 처리 기술','데이터 유형 변환기술','데이터 유형별 전환도구 사용 기술','데이터 분산기술'],A:['인공지능 윤리기준을 준수하려는 노력','데이터 정제 방안을 논리적이고 구체적으로 수립하려는 자세','비정상 데이터를 최대한 파악하려는 의지']},'06':{d:'인공지능 모델 학습이란 인공지능 문제를 해결하기 위하여 준비된 모델을 학습시키고 그 결과를 검증하는 능력이다.',K:['인공지능 학습 데이터','학습 모델의 종류별 특성','인공지능 학습 알고리즘','인공지능 학습 방법','학습 데이터 종류에 따른 학습 방법 데이터','학습 알고리즘의 특성'],S:['인공지능 강화학습 기술','지도 학습 기술','비지도 학습 기술','전이 학습 기술','딥러닝 기술','데이터에 따른 학습 입출력 기술'],A:['문제에 대한 호기심과 본질을 파악하고자 하는 집요한 자세','적극적으로 이해관계자와 협의하려는 노력','데이터분석의 오류가 없도록 철저히 분석하려는 노력']},'08':{d:'인공지능 모델 활용 관리란 선정된 모델의 구성요소, 배포를 관리하고 서비스에 적용된 모델의 성능을 관리하여 개선하는 능력이다.',K:['인공지능 모델 알고리즘','인공지능 모델 개발 프로세스','인공지능 모델 개발 시스템 이론','SW 개발과 형상관리 방법론','인공지능 서비스 개발 이론','인공지능 서비스 운영 방법론'],S:['인공지능 모델 설계 기술','인공지능 데이터 처리 기술','인공지능 모델 프로그래밍 기술','SW 형상관리 도구 활용 기술','모델 프로그래밍 기술','API 프로그래밍 기술'],A:['개발 구성요소를 정확하게 식별, 파악하려는 노력','절차를 심도 있게 분석하고 개선하려는 노력','배포 절차를 심도 있게 분석하고 개선하려는 의지']}}
+};
+/* NCS 능력단위 수행준거 원문 K·S·A 2차 수집분 (ncs.go.kr, 2026-10-06 확인) — 능력단위 270개 */
+const KSA2={
+ '19030904':{'04':{d:'의료기기 하드웨어 설계제작은 개발 제품의 회로기술을 수집하고 부품을확보하여 설계하고 제작한 뒤 검증을 수행하는 능력이다.',K:['의용전자공학 지식','원부자재 표준 원가','의료공학 지식','의용센서기술 지식','부품 규격 동향','원부자재 표준원가'],S:['회로 구성 능력','회로 판독 능력','정보 검색 기술','특허 분석 능력','부품 비교 선정 기술','부품 원가 산정 기술'],A:['다양한 자료를 수집하려는 적극적 자세','객관적으로 자료를 분석하려는 태도','제품개발 관련 기술기준 준수']},'05':{d:'의료기기 소프트웨어 설계제작이란 소프트웨어기술 정보를 수집하고 알맞은 도구를 이용하여 시스템을 구성하고 프로그램 작성 후 검증을 수행하는 능력이다.',K:['소프트웨어 아키텍처 전문 지식','소프트웨어 라이브러리 전문 지식','소프트웨어 도구 선정 지식','시스템 소프트웨어 공학 지식','하드웨어 구성요소 공학 지식','소프트웨어 설계 공학 지식'],S:['소프트웨어 도구선정 능력','소프트웨어 라이브러리 활용 능력','소프트웨어 품질 속성 시나리오 작성 능력','특허 분석 능력','제품규격서 분석 기술','소프트웨어 시스템 분석 기술'],A:['개발 제품에 적합한 소프트웨어 도구를 선정하려는 적극적인 태도','자원을 적극적으로 활용하려는 의지','원활한 커뮤니케이션 창출을 위한 의지']},'06':{d:'의료기기 기구 설계제작이란 기구설계 정보를 수집하고 디자인 컨셉을 결정한 뒤 안전하게 사용을 하기 위한 설계 후 제작하는 능력이다.',K:['의용 기계공학 지식','의료기기학','기초 의료공학 지식','기초 재료공학 지식','디자인 프로세스 전문 지식','디자인 개발 실무 지식'],S:['정보 검색 능력','기구 설계 기술 설정 능력','특허 분석 능력','2D 프로그램 활용 기술','3D 프로그램 활용 기술','디자인프로세스 관리기술'],A:['사용자의 요구사항을 적극적으로 수용하려는 자세','인체공학을 고려한 제품을 개발하려는 자세','다양한 정보를 적극적으로 수집하려는 자세']},'07':{d:'의료기기 안전성·유효성 검사란 개발 제품의 시험 규격을 설정하여 성능을 측정하고 평가하는 업무를 수행하는 능력이다.',K:['의료기기 관련 법 제도','의료기기 국내외 규격 정보','의료기기 국내외 성능검사 규격기준','시험 장비 운용 지식'],S:['시험 규격 설정 능력','시험 방법 설정 능력','시험 장비 활용 능력','성능 평가 능력'],A:['공정하고 객관적인 시험 규격을 설정하려는 태도','윤리의식 준수','기술규격 준수']},'10':{d:'의료기기 설계 이관이란 개발된 의료기기의 생산 공정 설계, 제품 표준화,생산 공정 기술지원, 생산 품질관리 지원을 수행하는 능력이다.',K:['생산 공정에 대한 지식','개발 제품에 대한 지식','현장 실무 용어 정보','원부자재 표준 원가','의용 기계공학 지식','의료기기 국내외 품질 규격'],S:['생산 공정 설계 능력','도면 판독 능력','부품 표준화 능력','치공구 활용 능력','품질 요구사항 분석 능력'],A:['유관 부서와 원활한 커뮤니케이션을 하려는 자세','효율적인 생산을 위한 의지','주인의식']}},
+ '19030902':{'02':{d:'의료기기등급분류란 의료기기의 국내외 인허가를 위해 허가 문서 작성에필요한 사항을 파악하여 문서를 작성하고 검토하는 능력이다.',K:['일반, 체외진단 및 체내이식형 의료기기 정의','의료기기 관련법령','의료기기 등급분류기준','해당기기 사용목적 및 기술적인 특성','유사제품 정보','인허가 관련기관 정보'],S:['의료기기 품목군 판단 능력','등급분류기준 조사 능력','등급분류기준 유관기관 협의 능력','등급분류기준 조정 능력','등급 파악 능력','적정성 여부 판단 능력'],A:['관계법령을 꼼꼼하게 점검하려는 자세','유관기관과 유기적으로 협력하려는 자세','유관기관을 납득시키려는 노력']},'03':{d:'임상시험이란 신규개발 또는 변경된 의료기기에 대해 임상시험이 요구될경우 임상시험 계획, 임상수행 허가, 임상시험심사위원회 승인 등의 임상시험 과정을 지원하고 관리하는 능력이다.',K:['임상시험 관련 법규','임상시험 수행 절차','의료기관과 임상시험수탁기관 정보','임상시험 방법','제품정보','임상시험계획서 내용 이해'],S:['의료기관 및 임상시험수탁기관 선정 능력','업무협의 능력','임상시험 계획 수립 능력','임상시험방법 임수 능력','임상시험계획서 작성 능력','임상시험계획서 검토 능력'],A:['법규를 꼼꼼하게 검토하려는 노력','공정하게 의료기관 및 임상시험수탁기관을 선정하려는 태도','구체적으로 임상시험 계획을 수립하려는 자세']},'04':{d:'규격선정이란 인허가를 위해 적용 규격을 입수하고, 규격 내용을 파악하며, 규격 적용 여부를 관리하는 능력이다.',K:['기기의 사용목적 및 기술적인 특성','유사제품 정보','적용규격 종류','규격관련 기관에 대한 정보','입수경로 및 구매경로','전기적·기계적 안전에 관한 공통기준규격, 보조규격, 개별규격'],S:['규격조사 능력','해당사항 및 타당성 확인 능력','적용규격 입수 능력','규격내용 파악 능력','사내 절차 및 관련문서 파악 능력','유관부서 협의 능력'],A:['적용규격을 적극적으로 조사하려는 노력','해당사항과 타당성을 체계적으로 확인하려는 자세','규격보유 여부를 정확하게 판단하려는 자세']},'09':{d:'보험등재란 국민건강보험법에 따라 해당 의료기기를 치료재료로 등재하여요양급여대상여부 및 건강보험 적용수가를 산정받기 위해 관련법규를 파악하고 등록을 사전 조사하며 등록 신청을 하는 능력이다.',K:['국민건강보험법 관계법령','치료재료 요양급여','수가변동사항','치료재료에 대한 지식','신의료기술 평가 필요성','유사품목 사용현황, 상한금액, 최저금액'],S:['요양급여 대상여부 파악 능력','급여, 비급여 예측 능력','정보보고서 작성 능력','수가변동사항 모니터링 능력','치료재료 등록여부 파악 능력','신의료기술 평가 필요성 분석 능력'],A:['관계법령을 꼼꼼하게 확인하려는 자세','정보보고서를 정확하게 작성하려는 의지','수가변동사항을 적극적으로 모니터링하려는 노력']},'11':{d:'임상평가란 의료기기의 안전성, 유효성을 확인하기 위해 인허가에 필요한임상 자료 수집을 계획하고 관리하는 능력이다.',K:['국가별 인허가 요구사항','인허가문서 작성절차','표준화된 문서서식에 대한 지식','인허가 절차','국가별 인허가 담당기관','인허가 보완요구사항'],S:['국가별 인허가 요구사항 파악 능력','인허가문서 작성방안 수립 능력','인허가문서 작성 능력','인허가 신청계획 수립 능력','인허가 신청 능력','인허가 보완사항 입수 능력'],A:['국가별 인허가 요구사항을 꼼꼼하게 파악하려는 자세','표준화된 서식에 맞춰 체계적으로 문서를 작성하려는 자세','유관부서와 유기적으로 협조하려는 자세']}},
+ '19030901':{'01':{d:'의료기기 품질문서 개발이란 제품의 안정성을 보장하기 위해서 국내·외품질관련 법규를 토대로 제품 특성을 반영하여 품질매뉴얼과 품질절차서를 작성·개정하는 능력이다.',K:['품질관리 대상제품 특성에 관한 지식','MDSAP(의료기기단일심사프로그램) 지식','GMP 기준 등에 따른 문서화 요구사항 이해','의료기기 제조 및 품질관리기준(GMP기준), ISO 13485 국제규격 등 관련 규정','관련규정의 요구사항에 따라 품질매뉴얼에 포함할 사항에 대한 지식'],S:['정보검색 기술','정보수집 기술','GMP 기준 등 대비 미비, 수정, 보완대상 문서 분석능력','제품특성에 따른 GMP 기준 등 품질시스템 요구사항 선별적용 능력','품질보증체계를 간략하고 명확하게 기술하는 작문능력'],A:['객관적인 입장에서 관련법규를 준수하려는 자세','타사 및 외국의 사례를 고려하여 폭넓은 시각으로 접근하려는 태도','객관적인 입장에서 관련법규 및 GMP 기준 등을 적용하려는 태도']},'02':{d:'의료기기 품질시스템 자원관리란 제품의 안전성과 유효성을 종합적으로관리하기 위하여 인적자원자격관리와 교육 그리고 공정에 필요한 기반시설과 작업환경에 대해 관리하는 능력이다.',K:['품질관리 대상제품의 이해','GMP 요구사항 이해','품질책임자 요건에 대한 이해','관련규정(의료기기법 시행규칙, 제조품질관리기준, 관련규격 해설서)','계측기 관리에 대한 지식'],S:['정보검색 기술','계측기 정도 관리 기술','기반시설 및 계측기 등의 교정 정보파악 기술'],A:['객관적인 입장에서 관련법규를 준수하려는 자세','회사의 규모를 고려하여 인적자원 자격을 꼼꼼하게 관리하는 자세','타사 및 외국의 사례를 고려하여 폭넓은 시각으로 접근하려는 태도']},'03':{d:'의료기기 내부(품질)감사란 품질시스템 요구사항에 따라 효과적으로 실행되고 유지되는지 여부를 결정하기 위하여 내부감사 절차서 작성·자격부여·감사 계획·감사 실행·감사 결과를 보고하는 능력이다.',K:['국내·외 품질시스템(KGMP, ISO 9001/13485/14001, cGMP, MDSAP) 규격 요구사항의 이해','품질관리 대상 제품의 이해','사내 인적·물적 자원 현황 및 업무 프로세스 전반의 이해','품질시스템 감사 방법, 기법 및 요령의 이해','사내 품질시스템 매뉴얼 및 절차의 이해'],S:['품질관리 대상 제품 및 제조 프로세스를 파악하는 능력','사내 품질시스템 매뉴얼 및 절차를 적용하는 기술','정보 검색 기술','문서작성기술','품질시스템 감사 방법, 기법 및 요령을 교육·훈련시키는 기술'],A:['객관적인 입장에서 관련 법규를 준수하려는 자세','사내 인적·물적 자원 및 업무 프로세스 전반에 대해 개선하려는 자세','품질관리 대상 제품 및 제조 프로세스 전반에 대해 이해하고 개선하려는 자세']},'05':{d:'의료기기 품질시스템 인증이란 제품의 안정성을 보장하기 위하여 관련법규에서 요구하는 품질시스템 규격을 파악하고 인증기관의 절차에 따라 의료기기 품질 시스템을 인증받고 유지·관리하는 능력이다.',K:['관련규격(ISO, KGMP 등) 이해','MDSAP(의료기기단일심사프로그램) 지식','품질관리 대상제품의 이해','GMP 요구사항 이해','국제표준화기구(ISO) 규격','국제품질인증제도, 의료기기GMP인증제도에 대한 이해'],S:['체크리스트 작성 능력','품질문서 작성 능력','인증기관 인지도 및 장단점 파악 능력','품질문서작성 기술','시스템 인증 신청서 작성 능력'],A:['시스템적 규격 및 법규를 이해하려는 자세','객관적인 입장에서 관련법규를 준수하려는 자세','개정된 규격을 파악하고 업무에 적응하려는 자세']},'06':{d:'의료기기 시제품 품질관리란 의료기기 시제품의 기능, 성능, 신뢰성을 확인하기 위해 내외부 규정에 따라 시험검사하고 평가한 후, 종합적인 결과를 보고하는 능력이다.',K:['관련 규격에 따른 시험 및 검사 규격에 대한 이해','시제품에 대한 시험 사양 및 기능 명세서 이해 지식','도면 해석에 관한 지식','시험환경과 시험 항목에 관한 지식','설계 시방서 이해','시험환경 및 검사항목, 시험절차에 관한 지식'],S:['정보검색 기술','관련 법규 및 검사 규격에 관한 해석능력','시험 항목을 결정할 수 있는 능력','도면 해석 능력','시험 설비 및 계측기 운용 능력','설계 시방서 해석 기술'],A:['객관적인 입장에서 검사 규격을 해석하려는 자세','시험 검사규격 설정을 위한 다양한 사고로 접근하는 자세','시험 규격 및 시험 항목의 적합성 확인을 위한 노력']},'10':{d:'시정 및 예방조치(CAPA)란 제품의 사용목적 및 고객의 요구사항에 적합하도록 관련 절차서를 작성하고, 품질방침·품질목표·감사결과·데이터 분석·경영검토 등의 관련 자료를 수집하는 능력이다.',K:['품질개선의 절차 이해','품질개선에 적용될 수 있는 자료 이해'],S:['정보검색 기술','설계 도면 판독 능력','통계적 기법 사용 기술'],A:['객관적인 입장에서 관련규정을 적용하려는 태도','가이드라인이나 지침서 및 적용사례를 활용하는 태도','고객의 불만 사항을 해결 하려는 태도']}},
+ '19020202':{'03':{d:'전자부품 구매관리란 생산목표를 달성하기 위하여 협력업체 선정과 관리를 하고 구매단가를 결정하여 자재를 적기에 조달하는 능력이다.',K:['협력업체 생산능력 분석','전자부품에 대한 지식','협력업체 생산 제품에 대한 지식','품질평가 방법','협력업체에 대한 정보','협력업체의 제품 판매현황'],S:['원자재 소요량 파악 능력','시장 분석을 통한 협력업체 발굴 능력','제조 및 원가 분석 능력','공급계약 관리 능력','품질 평가 능력','협력업체에 대한 정보 작성 능력'],A:['품질 방침을 협력업체와 공유하려는 자세','협력업체 제조 능력을 철저하게 분석하려는 자세','협력업체와 지속적인 관계를 유지하려는 자세']},'04':{d:'전자부품 자재관리란 전자부품 생산활동에 필요한 자재를 효율적으로 관리하고 제공하기 위하여 자재의 입고, 보관 및 출고를 관리하는 능력이다.',K:['자재별 보관조건','생산공정별 자재사용 방식','자재입고계획에 대한 이해','자재관리대장에 대한 지식','출고요청서에 대한 지식','적정재고 관리'],S:['자재별 배치 계획수립 능력','자재입고계획서 분석 능력','수입검사 능력','자재입고 관리능력','자재관리대장 분석 능력','재고유무 파악 능력'],A:['발주서와 입고품목, 수량을 정확하게 비교하려는 자세','3정5S를 준수하려는 자세','수입검사를 철저히 하려는 자세']},'07':{d:'전자부품 생산인력관리란 전자부품을 생산하기 위하여 인력계획을 수립하고, 생산인력에게 직무교육과 산업안전교육을 수행하는 능력이다.',K:['생산인력 산정 방법','생산인력 조정 방법','생산인력 배정 방법','생산공정','생산설비의 기능과 성능','생산설비의 고장 및 수리 이력'],S:['부품생산공정 분석능력','생산인력의 숙련도 분석능력','공정별 작업인원 배정 능력','생산인력 운용계획 수립능력','교육자료를 수집하고 정리하는 능력','교육내용 전달 능력'],A:['부품생산공정을 이해하려는 자세','생산계획변경에 신속하게 대응하려는 자세','합리적으로 생산인력을 배치하려는 자세']},'08':{d:'전자부품 생산활동이란 전자부품을 생산하기 위하여 생산을 준비하고, 생산하고자 하는 제품을 조립하며, 생산을 적기에 완료할 수 있도록 진도를 관리하는 능력이다.',K:['제품 특성','제품 제조공정','작업지시서','생산자원 배정 방법','생산제품 조립 프로세스','생산제품의 설계도면 및 구조'],S:['생산 일정관리 수립 및 운영 능력','공정별 업무 조정 능력','공정별 사용되는 장비에 대한 운영 능력','작업자, 원부자재, 제조기기 파악능력','생산인력의 숙련도 분석능력','조립작업 및 기능검사 수행능력'],A:['부품제조공정을 정확하게 이해하려는 자세','생산준비를 신속하게 처리하려는 자세','생산준비에 필요한 내용을 숙지하려는 자세']},'10':{d:'전자부품 출하관리란 생산계획서에 따라 전자부품을 생산하여 지정된 출하장소로 인도하기까지의 출하준비, 포장, 창고관리 업무를 수행하는 능력이다.',K:['재고, 납기일정, 포장자재에 대한 지식','포장방법','포장형태에 따른 운송수단','출하관리 방법','포장관리기준 및 매뉴얼','포장자재 및 포장방법'],S:['출하지시서 숙지 능력','전자부품 거래처별 분류 능력','출하제품 적재 및 이동 능력','출고전표 발행 능력','출하 대기 전자부품 식별능력','개별 포장 및 단위포장 수행능력'],A:['출하제품을 세심하게 확인하려는 자세','출하제품 수량을 정확하게 파악하려는 자세','출하제품 취급 시 주의를 요하는 자세']},'11':{d:'전자부품 설비계획이란 전자부품 생산활동에 필요한 설비를 효율적으로활용하기 위하여 설비관리계획을 수립하고 설비를 배치하는 능력이다.',K:['설비관리 방법','생산설비 작동원리','보유설비 정비 부품','전자부품','보유설비의 성능 특성','보유설비 운영 및 관리 기술'],S:['설비가동 조건 설정 능력','설비 일상 점검 및 정비 능력','생산설비 운용 능력','설비이력카드 작성 능력','설비가동 조건에 대한 능력','보유 설비 운영 및 관리 능력'],A:['설비관리계획을 치밀하게 수립하려는 자세','전략적으로 문제를 해결하려는 자세','관리방법 개선을 위한 적극적인 노력']},'12':{d:'전자부품 설비보전이란 전자부품 생산활동에 필요한 설비를 효율적으로활용하기 위하여 설비를 유지보수하고 관리하는 능력이다.',K:['생산설비 고장조치 방법','설비이력 관리','설비구조 배치도','생산설비 정비 부품','설비점검 항목','설비 가동률과 생산성에 대한 지식'],S:['설비 가동 조건 판단 능력','설비 일상 점검 및 정비 능력','보유 설비 운영 및 관리 능력','설비 이상유무 판단 능력','보수 예비부품 재고 관리 능력','생산설비 설치 능력'],A:['보수 예비부품을 철저하게 관리하려는 자세','관리방법 개선을 위한 적극적인 자세','보유설비의 고장 원인을 철저하게 분석하려는 자세']}},
+ '19030501':{'01':{d:'부품개발 검토란 전자부품을 개발하기 위하여 기술동향, 고객요청을 검토하고 부품개발 계획서를 작성하여 개발 타당성을 검토하는 능력이다.',K:['전자부품 지식','부품 기술자료 조사 지식','부품 기술동향 분류 지식','전자부품에 대한 전문 지식','부품 기술수요를 파악할 수 있는 전문 지식','고객의 요구사항을 파악할 수 있는 공학 지식'],S:['기술동향보고서 작성 능력','해외자료 분석 능력','부품의 기술 비교분석 능력','부품기술 요구사항 파악하는 능력','보고서 작성 능력','요구기술 자료에 대한 해석능력'],A:['기술과 비즈니스의 상호 관련성 수용','자료를 객관적으로 분석하려는 공정한 태도','다양한 자료를 검토하려는 적극적 태도']},'02':{d:'부품 특허 확보란 전자부품을 개발하기 위하여 수집된 정보를 검토하여부품 특허맵을 작성하고, 특허 침해 확인과 부품 특허를 출원하는 능력이다.',K:['전자부품 지식','특허 내용을 파악할 수 있는 전문 지식','특허 분류표를 파악할 수 있는 전문 지식','기술테마를 분류할 수 있는 전문 지식','특허 키워드를 선정할 수 있는 전문 지식','부품관련 특허지식'],S:['특허정보 분류기술','특허검색 기술','부품별 기술에 대한 분석 능력','특허맵을 작성할 수 있는 능력','특허를 파악할 수 있는 능력','특허 침해여부 판단능력'],A:['특허분류 기준과 범위 설정에 대한 적극적 노력','특허맵의 방향성을 준수하려는 의지','기술과 비즈니스의 상호관련성 수용']},'03':{d:'부품 규격 결정이란 전자부품을 개발하기 위하여 기존 전자 부품분석, 부품 성능 결정을 통하여 부품 규격서를 작성하는 능력이다.',K:['능동 부품 사양에 대한 전문 지식','수동 부품 사양에 대한 전문 지식','전자부품에 대한 전문 지식','기존 부품을 벤치마킹 할 수 있는 공학 지식','기존 기술동향을 파악할 수 있는 전문 지식','개발 여부를 파악할 수 있는 전문 지식'],S:['부품 분석을 위한 보고서 작성 능력','해외자료를 이해할 수 있는 어학적 능력','부품에 대한 분석, 측정 기술','부품 성능을 분석할 수 있는 기술','기술수준을 파악할 수 있는 능력','부품의 적용 기술에 대한 분석 능력'],A:['정확한 보고서를 작성하려는 태도','자료를 객관적으로 분석하려는 공정한 태도','다양한 자료를 검토하려는 적극적 태도']},'04':{d:'부품 시뮬레이션 분석이란 부품규격을 검증하기 위해 하드웨어 구성없이시뮬레이터를 선정하고, 컴퓨터를 활용하여 모델링, 환경설정을 통해 도출된 시뮬레이션 결과를 분석하는 능력이다.',K:['시뮬레이션 이론','시뮬레이터 선정 지식','전자부품 지식','시뮬레이터 최적화 모델링 지식','개념설계 지식','부품 시뮬레이션 방법'],S:['시뮬레이션 가능여부 판단 능력','시뮬레이터 적합성 검토 능력','시뮬레이터 선정 능력','부품 모델링 구현 기술','부품 모델링 최적화 기술','부품 시뮬레이터 활용 기술'],A:['적합한 시뮬레이터 선정을 위한 적극적 태도','적합한 시뮬레이터 선정을 위한 원활한 의사소통','부품개발에 필요한 요구 사항을 반영하려는 적극적 태도']},'05':{d:'부품 설계란 결정된 규격과 시뮬레이션 분석 결과를 반영, 요소 기술을 활용하여 부품소재를 선정하고 부품소자를 구성하여 부품설계도면을 작성하는 능력이다.',K:['능동 부품 소재에 대한 전문 지식','수동 부품 소재에 대한 전문 지식','제품개발전략','부품 소재에 대한 지식','공정에 대한 지식','부품소재의 특성을 파악할 수 있는 재료 공학 지식'],S:['적용가능 소재 파악 능력','원자재 검토 능력','부품소재 개발능력','신규공정 적용 능력','부품소재의 데이터 시트 및 카달로그 수집·분류 능력','부품소재의 데이터 시트를 검토할 수 있는 능력'],A:['신소재에 대한 호기심','객관적인 시각으로 원자재를 검토하려는 태도','적극적으로 부품소재 개발하려는 자세']},'06':{d:'부품 시제품 제작이란 부품개발을 위해 설계도면에 의거하여 부품 프로토타입 제작 및 특성 평가 후 시제품을 제작하는 능력이다.',K:['부품 프로토타입 제작공정','부품 프로토타입 검토 지식','부품 프로토타입 제작공정도','부품 프로토타입 특성 평가항목','부품 프로토타입 특성 측정 방법','부품 프로토타입 특성 평가 방법'],S:['소자, 소재 선정 능력','부품설계도면 해석 능력','부품 프로토타입 제작 공정도 작성 능력','부품 프로토타입 제작 기술','부품 프로토타입 특성 측정 기술','부품 프로토타입 특성 평가항목서 작성 능력'],A:['부품 프로토타입 제작을 위한 적극적인 노력','부품 프로토타입 제작을 위한 원활한 의사소통','부품 공정도를 충실하게 이행하려는 적극적 태도']},'07':{d:'부품 품질평가란 부품의 품질을 확보하기 위하여 다양한 환경에서 부품의기능, 성능을 검증하고 신뢰성을 평가하는 능력이다.',K:['능동 부품 시험에 대한 전문 지식','수동 부품 시험에 대한 전문 지식','부품 기능시험 환경 조건을 설정할 수 있는 전문 지식','기능평가 항목을 작성할 수 있는 공학 지식','검사장비 측정지식','환경 조건을 설정할 수 있는 실무 지식'],S:['검사장비 선정 능력','검사장비 운용 능력','부품의 기능을 검증할 수 있는 능력','계측 장비 선정 능력','계측 장비 운용 능력','부품의 성능을 검증할 수 있는 능력'],A:['환경조건을 준수하여 기능을 측정하려는 태도','기능평가에 대한 공정성 유지 노력','기능평가 절차를 준수하려는 노력']},'08':{d:'부품 실장 검증이란 개발 부품을 실제 상황에 적용하여 동작 및 성능을확인하기 위하여 부품실장을 계획, 지그(JIG)를 제작하여 실장 테스트를 통해 목표성능을 검증하는 능력이다.',K:['전자부품 실장 지식','지그(JIG) 활용 지식','검사장비 지식','실장공정 적합성 파악 지식','부품 지식','부품 지그(JIG)제작 지식'],S:['실장 공정 검토 능력','실장 테스트환경 검토 능력','실장테스트 방법 검토 능력','부품 지그(JIG) 제작 능력','지그(JIG)제작용 부품수급 능력'],A:['실장 공정절차를 검토하려는 적극적 태도','주도 면밀한 계획을 세우려는 자세','다양한 검사 장비를 검토하려는 적극적 태도']},'09':{d:'부품 인증 획득이란 개발된 부품의 판매에 필요한 부품별 공인기관의 인증과 수요처의 승인을 획득하고 관리를 수행할 수 있는 능력이다.',K:['개발 부품 인증에 대한 전문 지식','부품 인증 종류에 대한 지식','부품 인증기관의 선정 지식','부품 인증절차에 관한 지식','인증에 소요되는 비용에 대한 지식','부품 공인인증기관에 관한 전문 지식'],S:['부품 인증에 필요한 문서 작성 능력','부품 인증 절차 수행능력','시험검사 항목을 파악할 수 있는 능력','부품 공인인증에 필요한 문서 작성 기술','부품 공인인증 절차 수행능력','부품 공인인증시험 검사장비 사용 기술'],A:['원활한 의사소통을 위한 적극적 태도','도면 및 규격서를 상세히 검토 및 준비하려는 태도','체계적인 사고를 하려는 노력']},'10':{d:'양산 이관이란 개발 완료된 부품의 양산을 위하여 개발자료 배포, 초도 양산 지원, 개발완료 보고서를 작성하여 생산관련 부서에 이관하는 능력이다.',K:['양산 공정에 관한 전문 지식','부품 인증에 관한 지식','개발 품질보증 관련 지식','부품 설계에 관한 전문 지식','부품 소재, 소자에 관한 전문 지식','양불 판정 기준을 설정할 수 있는 실무 지식'],S:['양산에 필요한 자료를 파악하는 능력','부품양산에 필요한 기술공정 파악능력','부품양산 관련 핵심공정 판단능력','초도 양산시 문제점을 파악할 수 있는 능력','부품의 공급망을 파악하는 능력','양산에 발생한 불량을 제거할 수 있는 기술공정 능력'],A:['배포 자료를 적극적으로 준비하려는 태도','양산 공정을 파악하려는 태도','관련 부서의 원만한 협조를 위한 커뮤니케이션 창출의지']}},
+ '17040105':{'01':{d:'사출성형품 사양서 검토란 고객 주문사항을 검토하여 성형공법을 결정하고 외주관리, 납기 조정 등을 수행하는 능력이다.',K:['금형에 대한 기본 지식','금형구조에 관한 지식','제도에 관한 지식','사출성형기의 종류, 크기에 대한 지식'],S:['제품도 판독 능력','금형도 판독 능력','사출성형기 조작','원재료 종류 분석 능력'],A:['성형품에 대한 책임 및 부적합 재발 방지를 위해 노력하는 태도','기술적 위험에 적극적으로 대처하려는 태도']},'02':{d:'사출 성형품 검토란 고객이 요구하는 제품의 모양과 성능을 구현하기 위하여 원재료 선정, 형상, 치수를 검토하는 능력이다.',K:['사출성형기 구조 지식','원재료 종류/특성 지식','성형 원재료의 후 가공 활용 적용 지식','사출성형 종류에 관한 지식'],S:['원재료 선정기술','성형 원재료의 후 가공 활용 기술','성형품 형상의 강도 파악 능력','원재료 종류 파악 능력'],A:['안전사항 준수 의지','작업환경 개선의지']},'03':{d:'시험사출 준비란 원재료를 건조하고, 금형을 사출기에 장착하며, 주변 설비를 설치하기 위해 준비하는 능력이다.',K:['원재료 종류와 특성에 관한 지식','원재료 건조기에 관한 지식','사출성형기 구조에 관한 지식','금형 구조에 관한 지식'],S:['원재료 건조기 조작 능력','원재료 종류 분석 능력','사출성형 조건 파악 능력','사출성형기 조작 능력'],A:['안전사항 준수 의지','작업환경 개선 의지']},'04':{d:'사출성형 조건 설정이란 성형 해석 조건을 참고하여 속도, 온도, 압력을 설정하고 조건을 변경하는 능력이다.',K:['원재료 종류/특성에 관한 지식','사출성형 이론에 관한 지식','사출성형 해석에 관한 지식','사출성형기 구조에 관한 지식'],S:['원재료 종류 분석 능력','제품도와 금형 구조를 판독하는 능력','2D/3D S/W활용 능력','사출성형 해석 활용 능력'],A:['부적합 재발 방지를 위해 노력하는 태도','성능 평가의 공정성']},'05':{d:'사출 성형품 생산이란 성형품의 안정적인 생산을 위하여 원재료 수급, 성형품 생산, 외관·치수 검사 등을 수행하는 능력이다.',K:['원재료 종류, 특성에 관한 지식','작업기준서에 관한 지식','스크랩에 관한 지식','사출성형기 구조에 관한 지식'],S:['원재료 종류 파악 능력','원재료 특성 파악 능력','이물질 혼입 방지 능력','사출성형기 조작 능력'],A:['작업계획에 따른 작업량 달성을 위해 노력하는 태도','안전사항 준수 의지']},'06':{d:'사출성형 부적합대책 수립이란 부적합 유형·원인 확인, 부적합방지 대책 수립 등을 수행하는 능력이다.',K:['금형 구조에 관한 지식','원재료 종류, 특성에 관한 지식','사출성형 공정에 관한 지식','제품도에 관한 지식'],S:['부적합 원인 파악 능력','원재료 종류 분석 능력','사출성형 조건 설정 능력','제품도, 금형 구조 파악 능력'],A:['부적합 원인을 파악하기 위해 기술을 향상시키려는 노력','전문가의 자문을 구하는 적극적인 태도']},'07':{d:'사출성형 후가공 작업이란 외관품질향상을 위해 융착, 인쇄, 도장 등의 작업을 수행하는 능력이다.',K:['융착의 특성에 관한 지식','초음파 융착기의 구조에 관한 지식','융착 관련 주변기기에 관한 지식','지그 제작에 관한 지식'],S:['융착 지그 제작 능력','자동화 조작 능력','융착 지그 조작 능력','인쇄 지그 제작 능력'],A:['안전사항 준수 의지','작업환경 개선 의지']},'08':{d:'사출 성형품 품질관리란 품질관리 기준 확인, 품질 분석, 검사, 통계적 품질관리를 수행하는 능력이다.',K:['제품도면 지식','성형품 부적합에 관한 지식','품질에 관한 지식','원재료 물성에 관한 지식'],S:['원재료 측정기 사용 능력(MI, 수분, Color 등)','성형조건 설정 능력','사출성형기 및 주변설비 관리 능력','육안검사기기 활용 능력'],A:['정리, 정돈 및 청소 개선의지','부적합률 재발 방지를 위해 노력하는 태도']},'09':{d:'사출성형 공정검사란 금형온도 적정성 판단, 치수 검사 등 성적서 기록을 수행하는 능력이다.',K:['성형품 불량의 종류에 관한 지식','사출성형 조건에 관한 지식','제품도면 지식','측정에 관한 지식'],S:['사출성형 조건(금형온도, 건조온도, 실린더 온도) 설정 능력','성형품 불량에 대한 개선 능력','성형품 측정기 사용 능력(버니어캘리퍼스, 마이크로미터 등)','성형조건 설정 능력'],A:['정리, 정돈 및 청소 개선의지','지속적인 작업일보 작성 의지']},'10':{d:'사출성형 후가공 공정관리란 인쇄공정, 도장공정, 도금공정 등 관리업무를 수행하는 능력이다.',K:['인쇄의 종류 및 방법','인쇄 관련 주변기기','인쇄에 적합한 성형품의 특성','도장의 종류 및 방법'],S:['인쇄 치공구 설계 능력','인쇄 상태 판별 능력','인쇄 치공구 조작 능력','도장 방법 및 기술'],A:['안전사항 준수 의지','작업환경 개선 의지']},'11':{d:'사출성형 설비유지관리란 설비의 성능을 유지하기 위하여 사출성형기, 금형, 주변설비 점검 등을 수행하는 능력이다.',K:['산업안전 관련 지식','성형기 설계도면 해독 지식','전기회로도 해독 지식','유·공압의 원리 지식'],S:['성형기 조작 능력','각종 테스트기 사용 능력','수가공 능력','성형품 설계 기술'],A:['안전사항 준수 의지','고장 재발방지를 위해 노력하는 태도']},'12':{d:'사출성형 설비점검이란 사출 설비의 성능을 유지하기 위하여 사출성형기, 금형, 주변설비를 점검하는 능력이다.',K:['산업안전 관련 지식','성형기 설계도면 해독 지식','유·공압의 원리 지식','전기회로도 해독 지식'],S:['성형기 조작 능력','각종 테스트기 사용 능력','수가공 능력'],A:['안전사항 준수 의지','고장 재발방지를 위해 노력하는 태도']},'13':{d:'사출성형 외주관리란 협력사 능력 평가, 발주서 작성, 외주일정 관리 등의 업무를 수행하는 능력이다.',K:['원부자재 원가에 관한 지식','사출성형 후가공 공정에 관한 지식','성형품 납기 및 제조공정에 관한 지식','제품도면 해독에 관한 지식'],S:['원부재료 규격 파악 능력','검사장비 운영 및 수입검사 능력','수입검사의 적합, 부적합 판정 능력','협력사 관리 능력'],A:['기술과 비즈니스의 상호관련성을 수용하는 태도','계약서 준수 의지']},'14':{d:'사출성형 안전관리란 안전교육 실시, 예방점검 실시, 안전사고 사후대책 수립 등의 업무를 수행하는 능력이다.',K:['산업안전보건법의 지식','사출성형 설비 및 주변기기에 대한 지식','사출 금형의 장착과 이송에 대한 지식','안전관리규정 지식'],S:['사출 금형의 장착과 이송 능력','안전보건 교육자료 제작 능력','응급처치 능력','긴급상황 예방 능력'],A:['안전보건교육에 대한 책임감','재해예방에 대한 사명감']}},
+ '17010203':{'02':{d:'정비계획 수립이란 정비일정, 인력동원, 기자재 수급, 중장비 동원계획을 수립하고 정비 장비·공구를 선정하는 능력이다.',K:['기기별 이력에 관한 지식','기존 정비작업에 관한 지식','공정관리기법','정비작업절차서'],S:['정비작업표 작성 능력','정비주기 설정 능력','소요 장비, 기자재 조달 현황 파악 능력','세부작업명세서 작성 능력'],A:['공기 준수 의지','타 부서와 협력 노력']},'04':{d:'예방정비란 예방정비대상 선정, 스케줄 관리, 정비항목 작성, 정비이력 관리를 수행하는 능력이다.',K:['설비 종류에 대한 지식','설비전산 지식','점검 기술 지식','법정점검주기에 대한 지식'],S:['설비 중요도 파악 능력','자원배분 능력','OA활용 기술','검사방법 숙지능력'],A:['안전수칙 준수 태도','작업표준 준수의지']},'06':{d:'고정기기 점검이란 공정도면, 고정기기·유틸리티의 종류 및 기능을 확인하고 점검·조치하는 능력이다.',K:['도면기호·약어','설비재료 지식','배관 부속품 지식','공정배관계장도(P&ID) 지식'],S:['도면 해독 능력','설비별 기능 파악 능력','설비별 손상·부식 원인 능력','고정기기 분해·조립 능력'],A:['도면을 정확하게 검토하는 자세','안전수칙 준수 의지']},'07':{d:'배관·고정기기 유지관리란 고장원인을 분석하여 재발방지 대책을 수립하고 개선 업무를 수행하는 능력이다.',K:['제도일반','도면기호와 약어','설비재료에 대한 지식','압력용기 설계 개발 이해'],S:['도면 해독 능력','제도프로그램 활용','설비역할 이해 능력','재질 선정 능력'],A:['도면검토의 정확성','작업표준 준수의지']},'10':{d:'공정 흐름도 파악이란 주 공정의 공정흐름도·공정배관계장도와 유틸리티 공정도를 확인하는 능력이다.',K:['화학공장 공정흐름에 대한 일반적인 지식','물질 수지(material balance) 지식','화학물질별 특성 및 MSDS 지식','DCS 프로그램 로직'],S:['공정흐름도면 파악 능력','물질 수지 계산 능력','화학물질 특성별 취급 능력','DCS 프로그램 운전 조작 능력'],A:['공정의 안전관리 기준 준수 의지','도면과 현장의 일치여부 확인 자세']},'11':{d:'공정물질 특성 파악이란 원료·제품·부산물의 물리적·화학적 특성과 유해·위험성을 확인하는 능력이다.',K:['각 공정의 운전 절차서','공정물질의 물리·화학적 특성 지식','공정흐름도(PFD)','각 공정의 반응성·위험성'],S:['각 공정의 운전변수 파악 능력','각 공정운전 절차서 파악 능력','안전운전 절차지침 분석 능력','누출·화재·폭발 사고처치 능력'],A:['안전보건환경 영향을 중시하는 자세','안전수칙을 준수하려는 태도']},'12':{d:'환경·안전점검이란 안전 위험요소와 환경 위해요소 점검, 안전장비 사용법 파악, 공정사고 초기대응을 수행하는 능력이다.',K:['공정안전관리제도(PSM) 지식','안전 작업 절차','소방·위험물 시설 관리절차','화재·폭발·누출시 안전조치'],S:['산업안전보건법 해석 능력','안전시설 운영능력','작업위험요소 발굴능력','위험도 판단 능력'],A:['산업안전보건법 이해의지','안전수칙 준수의지']},'13':{d:'환경·안전관리란 교육 실시, 화학물질 및 작업위험성 평가, 폐기물 관리 업무를 수행하는 능력이다.',K:['산업안전보건법','환경 안전 관련법','환경 안전과 관련한 기초 지식','안전 작업 절차서'],S:['위험물의 안전한 취급 기술','소화 설비 작동 방법 기술','화학물질 위험성 평가 기술','측정기 사용 방법 기술'],A:['안전 수칙 준수의지','안전을 중시하는 태도']},'14':{d:'회전기계 점검이란 설계도면 확인과 점검준비를 하여 점검·조치하는 능력이다.',K:['주요 회전기계의 종류','베어링의 종류와 특성','도면기호와 약어','회전기계 작동원리·특성'],S:['공정배관계장도 분석 능력','공정흐름도(PFD) 분석 능력','시방서 분석 능력','설비 구조와 작동원리 파악 능력'],A:['도면 철저 검토 노력','작업표준 준수 의지']},'15':{d:'회전기계 유지관리란 손상원인을 분석하고 고장 재발방지 대책을 수립하여 개선 업무를 수행하는 능력이다.',K:['운전조건에 대한 지식','설계판별 지식','장비절차와 운용 지식','수명예측 지식'],S:['운전현황 파악 능력','설계분석 능력','설비별 수명예측 능력','고장원인 분석 능력'],A:['도면 철저 해독 능력','작업표준 준수 의지']},'16':{d:'전기설비 점검은 설계도면과 설비원리를 파악하여 전기설비의 점검·수리업무를 수행하는 능력이다.',K:['정비계획서에 대한 지식','전력계통 일반에 대한 지식','수전·배전 일반에 대한 지식','방폭이론 일반'],S:['전기기기 기호 파악 능력','전기법규와 규정 파악 능력','전기기기의 원리 구조 파악 능력','설비점검 능력'],A:['도면검토 정확성 준수 노력','안전수칙 준수 의지']},'17':{d:'전기설비 유지관리는 손상원인을 분석하여 고장 재발방지 대책을 수립하고 개선 업무를 수행하는 능력이다.',K:['설비능력에 대한 지식','설비전산 지식','점검기술 지식','설비분야별 기술규격'],S:['자원배분 능력','검사방법 숙지능력','검사장비 운용능력','데이터 분석능력'],A:['도면검토의 정확성','안전수칙 준수의지']},'18':{d:'계장설비 점검은 설계도면, 설비 현황을 파악하여 점검·수리하는 능력이다.',K:['온도, 압력, 유량, 액위, 밸브 등의 제어계측 일반 지식','PID 자동 제어 일반 지식','제작사 전기 및 공정도면','전기법규 및 산업안전보건법규'],S:['계장루프 분석능력','전원공급기 분석능력','시스템 구성의 분석능력','계측기·시험장비 사용 능력'],A:['도면검토의 정확성','안전수칙 준수의지']},'19':{d:'계장설비 유지관리는 손상원인을 분석하고 재발방지대책을 수립하여 개선 업무를 수행하는 능력이다.',K:['설비능력에 대한 지식','설비전산 지식','점검기술 지식','설비기술 자료'],S:['자원배분 능력','검사방법 숙지능력','검사장비 운용능력','데이터 분석능력'],A:['도면검토의 정확성','안전수칙 준수의지']},'20':{d:'화학공정 설비운전이란 현장 준비 점검 후 단위설비 시운전, 원·부재료 투입, 정상운전 업무를 수행하는 능력이다.',K:['계측기기에 대한 지식','회전기기에 대한 지식','공정가동 준비 표준작업 지식','작업지시서에 대한 지식'],S:['도면파악능력','안전 위험요소 파악 능력','제어기 운영 능력','기계운영능력'],A:['정확한 도면 검토 노력','안전수칙 준수 의지']},'21':{d:'화학공정 위험성 평가란 공정상의 위험성을 평가 준비하여 위험요소를 파악·분석하고 사전 차단하는 능력이다.',K:['공정흐름도에 대한 지식','물질수지(Material Balance)','공정운전 지식','위험성평가기법에 대한 기술적 지식'],S:['공정분석 능력','위험성 평가 기술','현장위치 파악 능력','공정관리분석 기술'],A:['도면기호와 공정흐름의 정확성','공정에 대한 총괄적 사고']},'22':{d:'화학공정 개선이란 공정운전 현황을 파악하여 운전 조건을 재설정하고 개선효과를 분석하는 능력이다.',K:['공정흐름도에 대한 지식','열·물질수지','공정운전 지식','공정 시뮬레이션에 대한 지식'],S:['전환율 수율 계산 능력','공정분석능력','열·물질수지 계산 능력','분산제어시스템(DCS) 조작 능력'],A:['공정흐름의 정확성 파악 노력','공정에 대한 총괄적 사고 자세']},'23':{d:'유틸리티 공정관리란 유틸리티공정을 모니터링하여 운전변수를 조절하고 이상상황에 대응·조치하는 능력이다.',K:['유틸리티 공정별 기계적 특성','유틸리티 공정별 운전절차','유틸리티 공정별 안전관리','유틸리티 공정별 비상조치방법'],S:['유틸리티 생산량 파악능력','유틸리티 밸런스 작성능력','유틸리티 제조단가 산정능력','공정 운전절차 수행능력'],A:['안전수칙 준수','생산성 향상에 대한 사명감']},'24':{d:'설비보수 외주관리란 외주계획을 수립하여 외주업체를 선정·관리하고 외주정비 품질관리 업무를 수행하는 능력이다.',K:['외주처리범위에 대한 기술적 지식','외주관리규정에 대한 지식','정비계획서에 대한 지식','정비 품질관리 항목 지식'],S:['작업량 산정 능력','외주업체 정비 능력 평가 능력','외주업체와 의사소통능력','계약문서 검토 능력'],A:['정비 일정 준수 의지','업체 선정 시 객관적·공정한 분석 의지']},'25':{d:'배관·관부속품 파악이란 도면, 배관, 관부속품을 파악하는 능력이다.',K:['도면기호와 약어','배관 제작 지식','밸브 종류 및 구성 지식','설비재료 지식'],S:['도면 해독 능력','전산프로그램 활용 능력','제도프로그램 활용 능력','밸브 특성 파악 능력'],A:['도면을 정확하게 검토하는 자세','작업표준 준수의지']},'26':{d:'회전기계 파악이란 액체이송, 기체·분체이송, 혼합·교반 회전기계와 동력을 파악하는 능력이다.',K:['액체이송 펌프 종류별 구조·작동 원리','액체이송 펌프 종류별 특성·용도','도면의 기호·약어','커플링(coupling) 지식'],S:['도면 기호와 약어 독해 능력','펌프 성능곡선 독해 능력','진동·소음·온도·rpm 측정장비 운용 능력','설비별 특성 이해 능력'],A:['도면을 정확하게 검토하는 자세','작업표준 준수 의지']},'27':{d:'계장설비 파악이란 전기계장설비의 종류별 구조와 특성을 파악하고 문제 발생 시 신속하게 대처하는 능력이다.',K:['계장설비 구성(유량·온도·액위·압력계 구조 및 특성)','계측 기초(온도, 압력, 유량, 액위, 밸브)','분산제어 시스템 구성','자동 제어 이론 지식(PID)'],S:['계장 루프 구성 기술','루프 구성 기기별 용도','신호 측정 장비 사용법','공정배관계장도(P&ID) 분석능력'],A:['도면검토의 정확성','안전수칙 준수의지']}},
+ '02040201':{'01':{K:['경영전반 지식(재무, 마케팅, 품질경영방침)','품질관리(QC)기법 및 신 QC기법','품질보증활동 이해','구매·생산 관리 관련 기본 지식'],S:['경영환경 분석 능력','품질정보 및 예측 기법 분석 능력','목표의 체계적 전개 능력','목표 전개에 대한 진단 능력'],A:['현상을 기반으로 미래를 예측하고 대응하는 자세','사실적 접근방법에 기반을 둔 사고']},'02':{K:['품질보증활동 개념','성과 지표 관련 지식','프로세스 지표 관련 지식','데이터 분석기법'],S:['목표 달성 평가 능력','성과지표와 프로세스 지표 판단 능력','품질정보 분류체계 정립 능력','표준 작성 능력'],A:['고객중심 사고','품질에 대한 책임감']},'03':{K:['서비스 품질 결정요소','전략적 서비스 개념','경쟁사 및 선진기업 벤치마킹 방법','SWOT, 3C, BCG 매트릭스 등 경영환경 분석 기법'],S:['서비스품질 설계 능력','시장 환경분석 능력','고객만족도 조사 능력','서비스전략 전개 능력'],A:['데이터 및 정보를 객관적으로 분석하려는 태도','고객 최우선 주의']},'04':{K:['공적표준과 사실적 표준에 대한 개념','관리표준과 기술표준 분류 방법','기본표준','국제경영시스템'],S:['표준 체계 및 번호부여 능력','표준(규정/규격) 작성 능력','표준 작성 능력','교육 계획 수립 능력'],A:['관련 부서 간 조율을 통해 협의하고자 하는 노력','부서와의 긴밀한 관계를 유지하려는 태도']},'05':{K:['품질코스트(Q COST) 및 COPQ 분류 항목','품질코스트 및 COPQ 산출기준','원가에 대한 기초 지식','품질코스트 및 COPQ 집계 방법'],S:['품질코스트 및 COPQ 항목 도출 능력','품질코스트 및 COPQ 산출기준 수립 능력','원가 계정과목 분류 능력','품질코스트 및 COPQ 산출 능력'],A:['각종 기법을 이해하고 활용하려는 태도','품질지표를 수치화하고자 노력하는 태도']},'06':{K:['품질공학(품질특성 및 인자구분)의 이해','국제표준/국가표준의 이해','VOC와 기술특성전개 이해','실험계획법과 통계적방법의 이해'],S:['통계적 품질관리(SQC) 활용 능력','표준 활용 능력','VOC조사와 기술특성전개 활용 능력','실험계획과 통계적방법의 활용 능력'],A:['품질향상 극대화에 대한 의지','사용자의 품질 요구 사항을 적극적으로 반영 하는 자세']},'09':{K:['협력사 선정 계획 및 기준설정 이해','종합지표(재무, 품질, 비용, 납기)에 다면평가방법 이해','협력사 선정 절차에 대한 이해','협력사 평가계획 및 평가 기준의 이해'],S:['협력사 평가능력','감사계획 및 기준수립 능력','데이터분석 능력','평가 기준 수립 및 평가 능력'],A:['품질에 대한 책임감','단위부품의 품질이 제품의 성능을 좌우한다는 마음가짐']},'11':{K:['시스템 신뢰성 공학에 대한 전문 지식','고유기술/운용기술의 신뢰성 공학에 대한 전문 지식','FRCAS 전문지식','IEC 60300 신뢰성 경영 표준 이해'],S:['시스템 신뢰성 엔지니어링 기술','분야별 부품 및 소재 기술','사내표준 정비 능력','RAMS_COST 시스템 운영 능력'],A:['시스템의 신뢰성 향상에 대한 의지','부품 및 소재의 신뢰성 향상에 대한 의지']},'12':{K:['안전제도 관련 법규(제조물 책임법, 제품안전기본법, 분야별 안전관리법)','제품 안전 대책(PS) 지식','제조물 책임 예방 대책(PLP) 지식','사전 안전품질 설계(강건 설계)방법 지식'],S:['안전품질체계화 기술','사전 안전품질설계(강건 설계) 및 분석 기술','분야별 안전규격 관련한 기술','제조물 책임 관련 신속대응 매뉴얼 작성 기술'],A:['사전 안전품질 설계능력을 확보하는 태도','안전품질을 중시하는 태도']},'13':{K:['SWOT, 3C 분석 등 각종 경영환경 분석 기법에 대한 지식','TQM, 6시그마 등 각종 품질혁신 추진방법에 대한 지식','BSC 관점에서 Top Down식 과제 해결 프로세스에 대한 지식','부문별, 기능별 CFT 추진 인력의 이해'],S:['혁신활동 계획수립 및 혁신활동 추진 능력','혁신활동 결과 보고서 작성 능력','혁신활동 실적 및 추진사항 관리 능력','제품 품질 분석 및 실적 관리 능력'],A:['품질경영혁신 활동의 필요성을 중시하는 태도','혁신활동을 활성화하고자 하는 태도']},'14':{K:['고객 불만 처리 절차에 대한 지식','문제해결 프로세스 이해','적합품 판정 기준 이해','부적합품 처리 절차에 대한 이해'],S:['고객 불만 대응 기술','개선계획수립 및 개선결과 보고서 작성 능력','이해당사자간 의견 조율 능력','생산 공정 중 품질관리 능력'],A:['품질에 대한 책임감','고객요구 충족시키고자 하는 성실한 태도']},'15':{K:['3정 5S 기본개념의 이해','3정 5S 추진절차 및 방법에 대한 지식','현장문제해결 방법 이해','생산 및 공정관리 지식'],S:['3정 5S 활동 수행 능력','3정 5S활동 계획 수립 및 결과 보고서 작성 능력','활동 실적 및 추진사항 관리 능력'],A:['품질에 대한 책임감','원칙을 지키려는 노력']}},
+ '02040101':{'02':{K:['구매관리 프로세스에 대한 이해','구매관리 성과지표에 대한 이해','구매품의 특성에 대한 이해','공급자 평가항목'],S:['평가항목 설계 기술','평가항목 내 ESG 등의 비재무적 요소를 반영하는 능력','공급자 평가기준을 평가자에게 효율적으로 전달하는 능력','공급자 선정기준 매뉴얼 작성 기술'],A:['구매전략에 부합한 선정기준을 수립하려는 노력','구매품 특성과 조건에 부합한 선정기준을 수립하려는 노력']},'03':{K:['구매업무 프로세스에 대한 이해','구매품 특성','데이터 통계분석 방법','제조공정별 특성'],S:['평가관리 기준에 따른 공급자 평가 인터뷰 진행 능력','평가지표 작성 능력','공급자 경영분석 능력','공급자 등급의 종합적 판정 능력'],A:['공급자를 파트너로서 존중하려는 의지','공급자의 사업수행능력 평가를 공정하게 실행하려는 의지']},'06':{K:['ISO 표준규격에 대한 이해','기자재별 규격의 품질요구조건에 대한 이해','설계도면 해석 방법','원재료 규격 파악'],S:['고객의 요구사항 파악을 위한 시장조사 및 분석 능력','구매품의 설계도면 해석 능력','다양한 유형의 요구사항 조절 능력','공정별 소요 납기일 관리 능력'],A:['고객의 요구사항에 대한 적극적인 수용','목표 사양 충족을 위해 정확한 규격을 확인하려는 노력']},'07':{K:['구매원가 계산에 대한 이해','보편 타당성의 원칙','발생 근거의 원칙','일관성의 원칙'],S:['견적서 검토 능력','원가요소별 원가계산 기술','재무제표 분석 능력','정보시스템 및 데이터베이스 활용 능력'],A:['데이터를 객관적으로 분석하려는 노력','원가자료 수집을 계획적으로 실천하려는 의지']},'08':{K:['구매품 구입 방법','자재의 특성 및 적용법','제조공정 프로세스','제조공정 관련 지식'],S:['구매 계약 내용 검토 능력','제조공정 분석 능력','공급자 조사를 위한 시장분석 능력','원가 절감 대상 구매품의 수요 예측 능력'],A:['데이터/정보의 객관성을 확보하려는 의지','데이터의 사실적인 수집 노력']},'10':{K:['자료의 객관성 확보를 위한 기초통계','성과지표','성과지표 관리 절차 및 규정','업무 및 제조공정 프로세스에 대한 이해'],S:['구매관리 관련 국내외 최고수준 파악 및 비교 능력','구매관리 관련 업계 동향 및 자사의 경쟁력 파악 능력','정보시스템 및 데이터베이스 활용 능력','공급자 평가를 위한 지표 수립 능력'],A:['자료의 객관성을 확보하려는 노력','성과지표를 객관적으로 설정하려는 노력']},'11':{K:['ISO 9001 기준','ISO 20400 기준','CIPS의 영국 구매직무에 대한 이해','리스크 종류'],S:['리스크 분석 및 지표화 능력','구매품 공정 및 생산능력 파악 능력','산업 분석 능력','구매품의 공급망 파악 능력'],A:['리스크 요인 파악을 위한 적극적 의지','구매품의 특성을 고려하여 해당하는 리스크를 식별하려는 의지']},'12':{K:['공급자 관계 유형 분석법(Supplier segmentation)','공급자 분류체계 및 전략','공급망 관리(공급망 지도 매핑)','포트폴리오 분석(크랄직 매트릭스)'],S:['분류 기준 수립 기술','통계, 함수 활용 기술','기준별 평가항목 설계 기술','상호협력을 통한 기업성과 향상 기술'],A:['공급자 미래 성과목표에 대한 동기부여를 하려는 노력','공급자와 장기적인 관점에서 관계를 분석하려는 노력']}},
+ '02040103':{'01':{K:['제품판매 관리에 대한 이해','제품재고 관리에 대한 이해','자재관리에 대한 이해','생산방식에 대한 이해'],S:['제품도면의 해석 능력','상황에 적합한 수요예측 기법 활용 능력','상황에 적합한 생산방식(주문, 예측) 활용 능력','경제적 생산 및 재고량(EOQ) 산정 능력'],A:['최적의 생산계획을 수립하려는 의지','합리적인 수요 예측을 위해 다양한 적용기술을 활용하려는 의지']},'02':{K:['주문생산, 계획생산 등의 생산 형태에 대한 이해','Job Shop, Batch Shop 등 공정 운영 유형','도면 해석에 대한 이해','제품구성'],S:['월간 생산 요구수량 산출 능력','생산효율 산출 능력','공정운영 유형 결정 능력','고객 요구에 맞는 생산 방식 결정 능력'],A:['총괄생산계획을 다양한 공정운영 유형에 적용하려는 노력','공정 운영의 효율성을 높이려는 의지']},'03':{K:['기초통계','ISO 9001, 14001','공정별 적정공수 산정 및 공정편성에 대한 이해','표준시간, 정미시간, 여유시간 구분에 대한 이해'],S:['데이터 수집 및 분석용 전산시스템 사용 능력','공정 및 작업 구분 능력','선행작업 우선 순위표 작성 능력','인원 또는 설비별 작업량 균등 배분 능력'],A:['객관적으로 데이터를 조사분석하려는 노력','공정문제에 대해 신속하게 대응하려는 적극적인 의지']},'04':{K:['ISO 9001','생산투입계획 작성 기준','자재명세표(BOM List)에 대한 이해','공수 및 난이도 등 생산제품에 대한 이해'],S:['현장 근무환경 분석 능력','공정 프로세스에 대한 운영 노하우 및 분석 기술','공정관리 기법 활용 능력','공정상 문제점 파악 능력'],A:['주의 깊게 관찰하고 분석하려는 의지','작업의 원활한 분배와 지시를 위한 역량 강화를 위한 노력']},'05':{K:['동작분석법','작업분석법','표준작업 구성 요소(3요소와 5요소)','재고 및 재공관리에 대한 이해'],S:['동작 경제의 원칙 적용 능력','단위작업 설정 능력','단위작업 소요시간 측정 능력','표준재공 설정 능력'],A:['분석기법을 익혀 작업편성에 활용하려는 노력','작업자의 피로도를 최소화한 공정 작업 조건을 구성하려는 의지']},'06':{K:['추세분석에 대한 이해','작업지도서 등에 대한 이해','설계도면 해독지식','KS B ISO 3098-0:2009(제도 - 문자)'],S:['제품/5M+1E별 층별 능력','조립공정도표의 활용 능력','작업공정도표의 활용 능력','제품공정도표의 활용 능력'],A:['기술기준을 준수하려는 의지','제품 상황별로 다양한 적용기술을 활용하려는 의지']},'07':{K:['설비별 특성, 구조 및 기능','기간별 생산계획 현황','설비와 관련된 법정검사 항목','기계 설비의 체결 및 구동전달'],S:['설비관리 시스템 활용 능력','공정 프로세스 관리 능력','설비의 매뉴얼, 작업표준, 작업지침 등의 작성 능력','설비 자주보전 점검계획표 작성 능력'],A:['안전사고를 예방하고자 하는 노력','생산목표 달성을 위한 설비점검계획을 수립하려는 노력']},'08':{K:['설비관리 기준과 설비 중요도 평가에 대한 이해','설비보전계획과 보전방식의 선정에 대한 이해','공정 및 생산계획에 대한 이해','해당 설비의 규격, 특성 및 원리 등 상세 정보'],S:['기간별 설비보전계획 기준표 작성 능력','생산계획상 가능한 보전시간 및 난이도 등의 보전환경 분석 능력','설비의 계획보전 일정수립 능력','설비의 성능검사기준 작성 및 점검 기술'],A:['설비의 고장 등 안전사고를 예방하고자 하는 노력','보전작업표준 및 기술기준 준수']},'09':{K:['노동, 설비 및 원재료 등 생산성측정 로직(Logic)','프로세스의 상세흐름도(프로세스 매핑)','생산관리 프로세스','산업공학(IE) 및 공정관리 기법'],S:['공수계획 수립 능력','공정 특성에 맞는 지표개발 능력','공정 영향요소 발굴 및 측정기술','생산능력 및 여력 관리 능력'],A:['공정에서 수집 가능한 정보를 정량화 하려는 노력','현장의 특성에 적합한 계산식을 개발하려는 의지']},'10':{K:['설비6대 로스','3정5S','눈으로 보는 관리, 계획관리 프로그램 관련 지식','현장의 7대 낭비'],S:['공정분석 능력','데이터의 통계적 분석 능력','6시그마 미니탭 활용 기술','현장자료의 정보 수집 능력'],A:['다양한 관점에서 문제를 의식하려는 의지','현장을 중시하는 3현주의(현장, 현물, 현실)를 실천하려는 의지']},'11':{K:['ISO 55000:2014(자산관리 시스템)','핵심자산(Critical Assets)의 관리에 대한 이해','투자수익률(ROI), 투자자산수익률(ROA) 등 자본투자 경제성 분석지표','설비생애비용(Life Cycle Cost)에 대한 이해'],S:['설비상태 분석/해석기술','설비 신뢰도 및 가용도 평가능력','설비진단기기 활용 능력','설비생애비용(LCC) 검토 및 산출 능력'],A:['전략적으로 설비자산을 인식하는 노력','판단력과 조정능력 강화를 위한 노력']},'12':{K:['생산자재명세표(M-BOM)에 대한 이해','생산정보시스템 생성정보에 대한 이해','생산정보시스템의 구성의 개념','생산정보시스템의 기준정보 관리 방법'],S:['생산자재명세표(M-BOM)의 해석 능력','생산정보시스템 기준정보 업데이트 능력','생산정보시스템 소프트웨어 사용법(입력, 출력 방법)','생산정보시스템의 장애 유무 판단 능력'],A:['생산정보시스템의 사용 매뉴얼 준수','기준정보를 지속적으로 관리하려는 노력']},'13':{K:['생산관리에서 필요한 Q(Quality), C(Cost), D(Delivery)의 개념','생산에 필요한 기술 및 제조 공정에 대한 이해','외주 대상 품목에 대한 기술적인 이해','외주관리규정에 대한 이해'],S:['외주품의 분석 능력','외주관리 방침의 이해 및 평가 능력','외주업체 생산능력 분석 능력','외주업체 선정계획에 따른 선정평가 기술'],A:['데이터로부터 정보를 도출하는 노력','업체 선정 시 객관적, 공정한 분석 의지']},'14':{K:['생산설비의 특성과 제원에 대한 이해','생산설비 안전에 대한 이해','생산설비 점검에 대한 이해','생산설비의 생산능력에 대한 이해'],S:['기간별 설비효율관리계획 기준표 작성 능력','생산설비 데이터 분석 기술','생산설비 시간, 성능 및 양품률 산출 기술','생산설비의 가동시간과 비가동시간 측정 기술'],A:['안전수칙 준수','정확하게 설비 효율 측정값을 산출하려는 노력']}},
+ '02020201':{'01':{K:['전략적 인적자원관리','인사전략 환경분석법','관리회계','조직의 인사제도와 운영방침 활용 기준'],S:['벤치마킹 사례분석 능력','목표와 방법에 대한 인사전략 작성 기술','시행 단계별 세부 실행계획 작성 기술','인력수요예측기술'],A:['부여된 책임과 목표를 달성하고자 하는 자세','조직의 특성과 상황을 이해하려고 하는 자세']},'04':{K:['중장기 인력운영 방안','인력운영계획 수립','정원관리기법','경력개발방법론'],S:['직무분석 기술','조직 인력운영 기술','인력수요예측 기술','자료분석 능력'],A:['인력운영관리 방향성 수립을 위한 전략적 사고','공정하고 객관적인 자세']},'06':{K:['핵심인재 관리 모델','조직개발 방법','경력개발 방법','핵심인재 선발 방법'],S:['핵심인재 제도설계 기술','핵심인재 관리 벤치마킹 기술','핵심인재 평가 결과 분석 능력','평가도구 활용기술'],A:['조직에 필요한 핵심인재를 정확히 정의하려는 의지','다양한 제도를 응용 및 적용하려는 노력']},'08':{K:['사업계획','시장조사방법','임금관리','재무제표분석방법'],S:['재무제표분석 능력','데이터분석 능력','인건비 시뮬레이션 작성능력','임금을 관리하는 시스템을 다루는 기술'],A:['임금조정안 수립 시 전략적으로 사고하기 위한 자세','시장 및 동종업계 임금수준을 면밀하게 분석하려는 자세']},'09':{K:['임금관리','소득세법','4대 사회보험 관련법','전사적 자원관리시스템(ERP) 이해'],S:['전사적 자원관리시스템 활용 능력','전자인사관리시스템 활용 능력','근태관리시스템 활용 능력','4대 사회보험 관련 시스템 활용 능력'],A:['법적 문제를 예방하기 위해 급여대장을 정확히 관리하려는 자세','급여대장의 보안 강화를 통해 임금정보를 보호하고자 하는 의지']},'10':{K:['설문조사 방법','복리후생제도 설계 방법론','예산 지침','내부 복리후생 규정'],S:['설문조사 설계 기술','설문조사 분석 기술','예산운영 능력','기획안 작성 능력'],A:['조직구성원 니즈 조사과정에서 중립성을 유지하려는 노력','우선순위 결정에 객관적 근거를 확보하려는 노력']},'11':{K:['조직문화 진단법','사회조사분석 지식 및 방법','조직문화 및 행태 관련 지식','조직 내 커뮤니케이션 관련 지식'],S:['조직문화진단 분석 능력','설문지 개발 기술','설문조사 분석 기술','대상 단위조직 특성 이해 능력'],A:['이해관계자들의 의견에 대한 적극적 청취 자세','중장기 비전과 조직문화 간 연계를 위한 전략적 사고']},'13':{K:['비용효과 분석론','사례연구','하도급거래공정화에 관한 법률','파견근로자보호 등에 관한 법률'],S:['비용효과 분석 기술','분석 및 종합 능력','정보검색능력','비교분석능력'],A:['대상업무에 대한 신중한 검토','효과에 대한 객관적 분석 노력']},'14':{K:['퇴직업무지원규정','근로기준법','4대 사회보험 관련법','퇴직유형별 퇴직금 산출방법'],S:['퇴직사유 파악을 위한 인터뷰 기술','퇴직유형에 대한 분석','퇴직금 산정방법','4대 보험 상실 신고 기술'],A:['퇴직유형 및 사유 파악에 대한 객관적 파악 노력','적극적 의견 청취 자세']},'15':{K:['직업상담심리이론','전직지원상담론','진단툴(MBTI, MMPI, DISC, TA, 직업가치관 검사)','직업정보론'],S:['전직지원상담 매뉴얼 작성 및 실행능력','전직지원신청서 분석능력','역량검사의 결과분석역량 및 적용/이해능력','정보검색 및 관련 자료·정책에 대한 해석기술'],A:['전직지원자에 대한 심리적 안정을 도모하는 마음가짐','적극적 라포형성 노력']}},
+ '02040302':{'01':{K:['국내외 무역규범의 종류','수출입절차서','수출입업무 개념과 과정','대외무역법상 수출, 수입의 개념'],S:['법률 해석능력','수출입관련 법규 이해능력','수출입관련 국내법규 구분능력','수출입요건 검토 능력'],A:['국내외 규범을 세밀하게 검토하려는 자세','국제무역규범을 이해하고 국제동향을 파악하려는 의지']},'02':{K:['수출입위험 요소 분석','수출입위험 관리방안','환율 변동','포지션(Position)의 개념'],S:['신용위험 관리','상업위험 관리','환위험 관리','가격변동위험 관리'],A:['위험을 주의 깊게 관찰하려는 자세','다양한 위험에 대비하려는 자세']},'04':{K:['국제계약규범의 종류','계약관련 국제조약','국제상관습','일반적인 계약의 성립요건'],S:['국제계약규범 이해','국제계약규범별 주요 고려사항 적용 능력','계약 유형에 따른 문서 작성 능력','계약 상황에 따른 적용 능력'],A:['고객 요청의 적극적 수용 노력','국제계약규범을 계약체결에 정확히 활용하려는 자세']},'05':{K:['해상운송, 항공운송, 복합운송에 대한 지식','철도운송, 도로운송, 연안운송에 대한 지식','컨테이너운송과 벌크운송의 차이점','FCL과 LCL의 용어 및 개념'],S:['적합한 운송수단을 찾을 수 있는 능력','화물의 종류에 따라 운송방법을 결정할 수 있는 능력','하자 없는 운송서류를 작성할 수 있는 능력','운송용어의 정확한 이해와 비용분석능력'],A:['납기와 경제성을 감안하여 운송수단을 찾으려는 자세','운송비를 기초로 정황조건을 고려하려는 자세']},'08':{K:['국제비즈니스 매너','바이어 국가의 상관습과 문화','상대국의 종교와 역사에 대한 기본지식','상대국의 언어에 대한 기본지식'],S:['국제비즈니스 매너에 대한 이해와 적극적인 수용 능력','상관습과 문화에 대한 적극적인 수용 능력','정보수집 능력','해외시장평가 능력'],A:['국제비즈니스 매너를 적극적으로 수용하려는 자세','상대국 문화를 존중하려는 자세']},'09':{K:['국내시장 시장현황조사방법','해외수입동향(제품수급현황, 유통구조, 경쟁자)','수입제품 판매가능성 평가','수입전략 수립'],S:['상품기획능력','시장조사계획서 작성능력','시장분석과 평가능력','국내시장 수입제품 판매가능성 평가능력'],A:['국내시장진입을 위한 적극적인 의지','객관적으로 사업성을 평가하려는 자세']},'10':{K:['관세법','수출통관 절차 및 개념','품목분류번호(HS) 분류원칙','수출신고필증 항목'],S:['수출신고를 위한 UNIPASS의 이해','수출신고를 위한 UNIPASS 운용능력','수출신고서 작성능력','국가전자무역서비스(uTradeHub) 등록능력'],A:['관세법 규정 및 절차 준수','효율적인 수출통관 업무를 위한 관세사와의 긴밀한 협력관계 유지']},'11':{K:['원본 선하증권의 기능','원본 선하증권과 Sea Waybill의 차이점 및 사용방법','원본 선하증권과 Surrendered B/L의 차이점 및 사용방법','수입화물선취보증서의 수취요령, 법적성격, 기능'],S:['원본 선하증권의 법적 권리를 주장할 수 있는 능력','선하증권을 분석할 수 있는 능력','선하증권·Sea Waybill·Surrendered B/L을 사용하여 화물을 수취할 수 있는 능력','Original-1, 2, 3의 기능을 구별할 수 있는 능력'],A:['선하증권을 분실하지 않도록 소중하게 다루려는 자세','해상운송서류를 적기에 확보하고 활용하려는 자세']},'12':{K:['로컬거래의 개념과 혜택','대외무역관리규정','무역금융규정','로컬 L/C 여신한도의 개념'],S:['인수증 발행 요건에 대한 능력','내국신용장 개설, 판매대금 결제 요령','로컬 L/C 여신한도관리 능력','한국무역보험공사 보증서 활용 능력'],A:['국내공급자와 협업하려는 자세','국내외 공급선과 안정적으로 거래관계를 유지하려는 의지']},'13':{K:['송금결제방식의 특징','송금결제방식(CWO, COD, CAD, Open Account) 종류별 이해','국제규칙에 관한 지식(URC 522)','추심결제방식의 특징'],S:['대금지급시기에 따른 대금 지급업무 수행능력','선적서류 접수 및 확인','선수금환급보증서(A/P Bond) 요청','계약서의 조건들에 따른 선적서류 검토능력'],A:['지급시기별 수입대금 환위험관리 유지','선적서류 미비 시 절차에 따라 정중하게 거절 의사를 통보하는 자세']}},
+ '10010101':{'06':{K:['고객의 요구사항','수익성 분석 지식','계약 관련 법규','회사가 제공하는 상품의 내용 및 범위'],S:['정보 수집 기술','고객의 요구사항에 대한 정리 능력','수익성 분석 능력','고객과의 협상 기술'],A:['고객의 요구사항과 자사 상품을 객관적으로 일치시키려는 자세','수익성 분석을 위한 치밀성']},'07':{K:['계약 내용','계약 변경 절차','계약 관련법','납품 절차'],S:['계약 변경 사항에 대한 정리 능력','계약 변경 사항 내용 분석 기술','고객과의 커뮤니케이션 능력','납품계획 수립'],A:['변경 사항 정보 파악을 위한 적극적 태도','변경 사항 분석에 대하여 타당성을 유지하려는 태도']},'08':{K:['품목별 판매현황','관련 상품 시장점유율','경쟁사 현황 정보','사업계획서'],S:['목표성과 분석 능력','경쟁사 성과 정보 유지 능력','외부환경 영향 측정 능력','객관적 수리능력'],A:['목표 달성하고자 하는 의지','성과개선을 위한 적극적 사고']},'10':{K:['고객정보','데이터베이스론','고객관계관리(CRM) 이론','개인정보보호법'],S:['데이터베이스 프로그램 활용 능력','고객정보 추출 능력','세분화된 고객정보 타당성 검증 능력','정보수집 출처 파악'],A:['정확한 정보를 축적하려는 태도','차별화된 정보를 공유하려는 태도']},'11':{K:['환경 분석 계획 수립 절차','환경 분석 방법론(PEST, 5 Forces, TELOS)','자사의 발전 로드맵','자사의 경영전략계획'],S:['일정 계획 수립 기법(PERT, 간트 차트)','통계 프로그램 활용 기술','환경 분석 기법','유통 구조 분석 기법'],A:['환경 분석을 위한 객관성 유지','다양한 의견의 수렴을 위한 열린 자세']}},
+ '10010102':{'01':{K:['해외시장조사목적의 이해','조사 상품 및 서비스에 대한 기초 지식','조사 상품 관련 산업 동향','해외 시장정보'],S:['보고서 작성기술','시장 전망 기술','원가분석기술','요약 보고 기술'],A:['객관적인 분석','합리적인 사고']},'02':{K:['원가 구성에 대한 이해','관련산업동향파악','원자재 가격 동향','상품의 제조공정'],S:['원가분석 판단능력','재무제표 이해능력','상품성 분석기술','장단점을 분석할 수 있는 능력'],A:['각종자료에 대한 객관적 분석태도','관련부서와의 적극적인 소통자세']},'03':{K:['전략수립절차','목표시장 진입 목적','당해국의 정치·경제동향, 사회, 시장 환경, 환율, 국가위험','시장진입전략 방법 및 자원조달'],S:['관련자료 검색기술','관련자료 수집능력','시장분석 능력','경쟁사의 동향정보 수집 능력'],A:['적극적·개방적 정보입수 태도','지속적인 정보수집 태도']},'04':{K:['제품 전반에 대한 이해','e-MP 사이트 이해','B2B 사이트 이해','고객의견 분석 요령'],S:['정보검색능력','정보 비교분석 기술','OA활용 능력','정보활용 가능성 판단 능력'],A:['끈기있는 태도','통화예절 준수']},'05':{K:['제품에 대한 이해','세일즈 포인트에 대한 이해','거래제안서의 유형','거래제안서의 구성'],S:['사진 및 동영상 편집기술','경쟁사의 견적가액 예측 능력','자사의 생산능력 파악','회의 운영 능력'],A:['지속적으로 보내는 끈기 있는 태도','경쟁사와 차별점이 되는 제품의 장점을 긍정적으로 부각시키는 태도']},'06':{K:['제품에 대한 이해','무역 법규','국제경영전략','무역 비즈니스 영어'],S:['협상기술','프레젠테이션 능력','협상능력','OA활용'],A:['고객의 반응을 정확하게 파악하고자 하는 적극적인 태도','관련된 자료를 취합하고 분석하려는 치밀한 자세']},'07':{K:['일반거래 조건 협정에 관한 지식','품질, 수량, 가격 등 물품의 조건','계약이행사항','계약 불이행 사항'],S:['조건별 계약사항 비교 능력','상품 거래 단위에 대한 적용 능력','영문 계약서 검토능력','문서작성 프로그램 활용 능력'],A:['치밀하게 검토하여 완전을 기하려는 태도','정보를 수집하고 분석하려는 적극적인 자세']},'08':{K:['환율 및 외국환 수수료 조건','수출 보험 가입 조건','추심 과정','신용장에 대한 지식'],S:['거래 상대방의 신용 파악 능력','결제 오류에 대한 예방 능력','거래 은행 관리 능력','ERP, 전자무역 툴 등 업무프로세스 프로그램 활용능력'],A:['명확한 시간 관리에 대한 태도','원활한 의사소통을 위한 긍정적 태도']},'09':{K:['클레임 해석을 위한 용어','국제 상관습에 대한 지식','국제거래법','국제상사거래분쟁해결 관련법규'],S:['용어 해석 능력','정보 정리 능력','문서 작성 능력','계약서 검토 능력'],A:['정확한 상황 판단을 위한 신중한 자세','문제상황에 신속하게 적극적으로 대응하고자 하는 태도']},'10':{K:['거래관계 용어 이해','해외시장 변화에 대한 지식','무역 거래 지식','무역 법규'],S:['요구 분석 능력','해외시장 정보 수집능력','스프레드 시트 작성 능력','ERP 등 업무프로세스 프로그램 활용능력'],A:['다양한 요구에 대해 유연하게 대처할 수 있는 태도','상대방의 요구에 대한 수용적 태도']}},
+ '23010103':{'01':{K:['물환경보전법','화학물질관리법','환경정책기본법','4대강 수계법'],S:['물환경보전법 해석 능력','화학물질관리법 해석 능력','환경정책기본법 해석 능력','오염물질 분석능력'],A:['적극적인 관련 법규 활용 노력','최신의 법과 제도를 세밀하게 파악하고자 하는 의지']},'03':{K:['대상유역의 토지피복특성 해석을 위한 지리정보시스템(GIS)','유역모델의 원리','유역모형별 특성 및 적용성','국가 기후변화 관련 정책'],S:['지형자료 구축기술','유역모형 구축기술','민감도가 높은 매개변수의 선정 및 검·보정기술','유역모형 비점오염원 적용기술'],A:['유역내 물질 유출특성과 현상 분석 의지','유역모형의 기본원리와 이론 준수']},'04':{K:['물환경보전법','소하천정비법','하천법','가축분뇨의 관리 및 이용에 관한 법률'],S:['환경관련 법규 해석 능력','수질 분석 항목 및 규제 기준 검토 능력','수질 오염 메커니즘 분석 능력','수질 분석 등 데이터 해석 능력'],A:['환경규제와 규제기관의 입장을 바로 파악하려는 자세','수집자료를 체계적으로 분석·정리하려는 자세']},'05':{K:['물환경보전법','공공폐수시설의 설치 및 운영·관리 지침','하수도정비기본계획','하수도법'],S:['물환경관리·보전에 관한 정책방향 판단 능력','관련 법규 파악 및 해석 기술','규정된 허가(신고) 관련 서류의 작성 기술','배출시설 및 방지시설의 설치·운영·관리 관련 행정 처리 기술'],A:['점오염원 관리에 관한 관련 법률 이해 노력','관련 법규 및 매뉴얼 준수']},'06':{K:['물환경보전법','화학물질관리법','비점오염원 설치신고 업무처리지침','비점오염원 저감계획서 작성방법'],S:['비점오염원 관련 법규 해석 능력','인허가 관련 서류 작성 능력','비점오염원에 대한 정의 및 특징 해석 능력','비점오염원의 형성과정과 유출특성 해석 능력'],A:['환경관련 법규 준수','정부정책에 대한 적극적 파악 노력']},'07':{K:['물환경보전법','화학물질관리법','수질오염총량관리기술지침','수질오염총량관리제도에 대한 이론'],S:['지도 작성 능력','관련 자료 수집 능력','수치 및 통계 프로그램 운영 능력','컴퓨터 활용 기술'],A:['세밀하게 도면을 검토하려는 노력','작성지침 준수']},'08':{K:['물환경보전법','하천법','생태하천복원사업 업무처리지침','생태하천복원사업 기술지침서'],S:['관련 법규·지침·매뉴얼 해석 능력','생태하천복원사업의 목적·유의사항·추진절차 전반적 검토 능력','관련 자료 수집 능력','기초조사 및 시험 분석 능력'],A:['폭넓은 법규와 지식을 명확하게 파악하려는 의지','수집된 자료를 객관적으로 분석하려는 노력']},'09':{K:['물환경보전법','화학물질관리법','먹는물 관리법','재난 및 안전관리 기본법'],S:['환경 및 재난 관련 법규 적용 능력','오염원, 발생경향 및 오염물질 해석 능력','환경기준 및 배출기준 적용 능력','수질오염 사례분석 및 원인 해석 능력'],A:['환경 및 재난 관련 법규 준수','유관기관과의 협조 노력']},'10':{K:['물환경보전법','수질오염공정시험기준','하천 및 호소의 수질기준','수질기준, 수질오염물질 등에 관한 이론'],S:['문제처리 대처 능력','물과 수자원의 특성 이해 능력','환경관련 법규 해석 능력','하천·호소 등의 수질오염 물질 성상 분석 능력'],A:['환경관련 법규 준수','하천 및 호소의 특성을 이해하려는 노력']},'11':{K:['수질에 따른 미생물의 특성','수중 미생물의 특성과 작용기전 이론','물환경보전법','수질오염공정시험기준'],S:['미생물의 동력학적 상태 분석 능력','미생물을 관찰하는 현미경 사용 능력','수중 조류의 분석(분류·동정) 능력','환경관련법규 해석 능력'],A:['미생물의 생태를 이해하려는 노력','수중 미생물을 관찰하려는 노력']}},
+ '23010104':{'01':{K:['수도법, 국토기본법, 국토의 계획 및 이용에 관한 법률, 도시개발법','상수도설계기준, 수돗물 수질관리지침, 정수처리기준 등에 관한 규칙','먹는물관리법','수도법'],S:['수도시설에 대한 신설·확장·개량 절차에 대한 능력','수도정비기본계획의 목적과 내용을 파악하는 능력','생산원가 계산 및 상수도 에너지 절감방안 수립 능력','유수율 향상방안의 장단점을 판단하는 능력'],A:['취수량·생산량·유수율을 조사하고 수도사업 경영개선에 반영하려는 태도','무수요인에 대한 원인규명 및 적극적 개선을 위해 노력하려는 자세']},'02':{K:['혼화/응집이론','표준 정수처리 공정도의 이해','수처리 공정 국내외 운영 및 유지관리 사례','혼화·응집시설 종류에 따른 특성 및 장단점 파악'],S:['혼화·응집지 구조 및 수리적 해석 능력','응집제 주입위치의 적정성 평가 능력','속도경사(G값) 적정성 평가 능력','제타전위 또는 유동전류 측정 능력'],A:['먹는물 수질기준을 준수하려는 태도','장애 원인규명과 대응방안을 적극적으로 해결하는 태도']},'03':{K:['수도법','먹는물관리법','물환경보전법','수질오염공정시험기준, 먹는물수질공정시험기준'],S:['수질자료 평가 분석능력','수질 정보시스템 데이터 활용 기술','단위 공정별 운영인자 조작 기술','목표 수질 달성과 수질관리 기술'],A:['먹는물수질기준과 정수처리기준 준수','정수처리 단위공정별 목표수질 준수']},'04':{K:['물환경보전법','폐기물관리법','산업안전보건법','고형물 함량에 따른 배출수의 유량과 무게 관계'],S:['슬러지의 성상파악 기술','배출수 발생량 산정 및 계산 기술','배출수처리시설 단위공정 관리기술','배출수 공정 물질수지도 해석능력'],A:['배출허용기준 등 관련기준 준수','폐기물관리법 등 관련기준 준수']},'05':{K:['시설물의 안전 및 유지관리에 관한 특별법','수도법','먹는물관리법','시설물별 점검 항목·관리지침에 대한 지식'],S:['시설물의 안전진단의 내용 및 법적 근거 파악','설계도면 해독 기술','시설물별 안전관리지침서에 따라 안전점검 및 진단 파악능력','각 시설물별 안전대책 수립 능력'],A:['안전규칙 준수 의지','안전사항을 관찰하는 태도']},'06':{K:['먹는물 수질기준 및 검사 등에 관한 규칙에서 정한 정수의 검사항목·횟수·기준','상수원 관리규칙에서 정한 원수의 검사 항목·횟수','물환경보전법·하수도법 시행규칙에서 정한 방류수 검사항목·횟수·기준','먹는물수질공정시험기준'],S:['법규 검색·습득 능력','분석일정 계획수립 능력','시료 채취·전처리 방법 선정 및 계획 능력','시료 분석방법 선정 능력'],A:['법규에 따라 검사 항목·횟수·주기를 준수하려는 노력','적정 분석방법 판단 및 선정 노력']},'07':{K:['수도법','먹는물관리법','수질오염공정시험기준, 먹는물수질공정시험기준','수처리제 기준과 규격 및 표시기준'],S:['단위공정별 운영 지식과 적용 능력','단위공정별 목표수질 파악 능력','수처리제 특성 파악 및 농도제조 기술','시료채취 및 품질 실험 장비 사용 기술'],A:['단위공정별 운영평가 실험절차 준수','오염물질별 제거기작을 이해하려는 태도']},'08':{K:['수도법, 먹는물관리법, 에너지이용 합리화법, 산업안전보건법','상수도시설기준, 수돗물 수질관리지침, 정수처리기준에 대한 지식','기계설비 국내외 운영 및 유지관리 사례','상수도설계기준에 대한 지식'],S:['정수처리시스템 설계인자·운전인자 파악 능력','기계설비의 설계인자·운전인자 파악 능력','기계설비의 구조·기능·조작·취급 방법 파악 능력','기계설비의 기능 진단 및 평가 능력'],A:['먹는물 수질기준을 준수하려는 태도','종합적 기계설비 효율을 판단하려는 노력']},'09':{K:['전기사업법, 전기용품안전관리법, 전력기술관리법','전기설비 기술기준의 판단기준, 한국전기설비규정(KEC)','전기안전관리업무지침','내선규정, 배전규정에 대한 지식'],S:['전기설비의 구조·기능·조작·취급 방법 습득 능력','전기설비의 기능평가와 설비진단 능력','전기설비의 위험관리·안전관리·사고 및 재해대책 수립 능력','전기설비 매뉴얼 등 유지관리 자료 해석 능력'],A:['기술 습득을 위해 학습하는 태도','단위공정별 기술 기준을 준수하려는 태도']},'10':{K:['먹는물 수질기준과 정수처리의 운영지식','컴퓨터제어방식과 운영지식','각종 계측제어용 기기의 사양에 대한 지식과 운전방법','자동제어 방식과 제어동작 분류 방식 파악'],S:['계측제어용 기기별 사용기술','측정된 결과와 데이터 비교·분석 능력','자동제어 방식과 제어동작의 분류 기술','공정 과정과 운영 및 인과관계 해석기술'],A:['먹는물 수질기준과 단위공정 기준 등 관련규정 준수','각종 계측제어용기기 사양과 운전방법 습득 노력']},'11':{K:['산업안전보건법','소독제 및 산화제로서 오존의 기능','오존발생방법과 특징','오존처리, 입상활성탄 접촉조 등 고도정수공정 개념'],S:['수처리에서의 오존의 반응파악','오존·활성탄공정 효율 평가 능력','오존 전단효율 및 배오존 가스처리 평가 능력','오존 주입지점·주입량·접촉시간의 결정 능력'],A:['먹는물 수질기준을 준수하려는 태도','장애 원인규명과 대응방안을 적극적으로 해결하는 태도']}},
+ '23010201':{'04':{K:['대기성질과 대기확산 방정식','대기오염원별 대기오염 배출량 산출기법','대기오염물질 배출계수에 대한 지식','배출량 산출을 위한 관련 활동도 자료에 대한 지식'],S:['대기오염 배출량 산출 기술','배출량 산출 모델 수행 기술','필요한 기상자료의 선정과 습득 기술','기상자료 처리와 가공 기술'],A:['정확하게 데이터를 관리하려는 태도','성실하게 계산과정을 관리하려는 태도']},'05':{K:['공사 진행 공정표 작성 방법','토목공학·기계공학·전기공학 현장 적용 방법','각 기기별 검수 방법','장치의 설치 방법 및 설치 순서에 관한 지식'],S:['공정시공 실무능력','대상 배출시설 물질수지 작성·해석능력','공사 공정표 작성 능력','설계도서 활용 능력'],A:['공정별 특성을 충분히 검토하고 도출대안을 수용하는 자세','처리가스 성능을 만족시키려는 자세']},'07':{K:['악취 물질의 종류 및 특성','악취기여도 평가','악취배출시설 종류','악취방지법'],S:['악취배출시설 기술진단 능력','악취관리계획 수립 능력','악취 배출 인벤토리 데이터베이스 작성 능력','악취발생량 산정 능력'],A:['악취오염물질 관련 기존자료 사전조사 및 분석','지방자치단체의 별도 악취배출허용기준 확인 능력']},'08':{K:['실내공기질관리법','실내 공기질 환경오염물질별 규제기준','시료채취 지점선정 및 채취방법','실내 공기질 공정시험기준에 따른 항목별 측정 분석방법'],S:['미세먼지·폼알데하이드 등 실내공기오염물질 시료채취 및 분석능력','실내 공기오염물질 측정장비에 대한 사용능력','측정결과보고서 작성능력','자연환기설비 설계기술'],A:['철저한 실내 공기오염물질 관련 자료 사전조사 의지','실내 공기질 공정시험기준 등 관련규정 준수 의지']},'09':{K:['자동차 구조 일반 및 엔진','자동차 배출가스 생성원리 및 대기오염물질 처리 원리','전 세계 자동차 환경 규제 및 동향','자동차 산업 및 통계자료'],S:['배출가스 생성 원리 이해 능력','해외 규제 현황 파악을 위한 문서 독해 능력','자동차 배출가스 측정 기술','보고서 작성 능력'],A:['변화하는 기술적 동향 파악을 위한 적극적인 대응','환경규제 및 비즈니스와의 상호 연관성 수용의지']},'10':{K:['미세먼지에 대한 일반 지식','국내 미세먼지 정부대책과 국제동향','미세먼지 해결을 위한 최적 관리·계획방안','미세먼지 해결을 위한 한계 및 극복방안'],S:['대기환경관계법규 및 주요 미세먼지 배출원 파악기술','국내 미세먼지 정부대책과 국제동향 파악기술','미세먼지 해결의 최적방안 도출기술','미세먼지 발생 메커니즘 파악 기술'],A:['미세먼지의 중요성을 인식하고 적극적으로 대응하려는 자세','미세먼지 처리를 위한 기술발전 동향을 수시로 파악하려는 자세']},'11':{K:['대기관리권역의 대기환경개선에 관한 특별법 등 관련법규','대기관리권역별 대기환경관리 기본계획','사업장 대기오염물질 총량관리제도 업무편람','대기환경보전법과 대기오염공정시험기준에 대한 법령 지식'],S:['총량관리 계획에 필요한 자료 수집 능력','총량관리 관련법규 및 관계 기관 동향 파악기술','수치 및 통계 결과 자료 해석 능력','대기오염 배출원 자동측정기기 부착대상 시설 및 항목 판단 능력'],A:['총량관리 목표를 명확히 이해하고 이를 지키려는 태도','정부시책에 부응하는 국가관']}},
+ '23010302':{'02':{K:['순환경제사회 전환 촉진법','폐기물관리법','자원의 절약과 재활용 촉진에 관한 법률','분리배출 표시에 관한 지침'],S:['환경 관련 법규 적용 능력','폐기물 관련 법규의 수집운반 및 보관규정 적용 능력','폐기물정책 변화에 대한 분석 능력','사업장·생활계폐기물, 음식물류폐기물 배출현황 분석 능력'],A:['환경 및 안전관련 법규 준수','보관 장소를 위생적으로 관리하려는 노력']},'04':{K:['순환경제사회 전환 촉진법','폐기물관리법','자원의 절약과 재활용 촉진에 관한 법률','각 공정설비 사양서 및 운전·유지관리 매뉴얼'],S:['관련 기술자료의 검색 능력','단위 선별시설의 성능 평가 능력','다양한 선별시설의 운영 능력','통계자료 해석 능력'],A:['기계적 선별 특성과 폐기물 특성 분석 자료를 연계하여 확인하려는 노력','기술 수준과 선별 공정의 효율성을 향상하려는 노력']},'05':{K:['순환경제사회 전환 촉진법','건설폐기물의 재활용촉진에 관한 법률','자원절약과 재활용 촉진에 관한 법률','폐기물관리법'],S:['건설폐기물 배출 특성 분석 능력','건설폐기물 감량화 기술 평가 능력','건설폐기물 자원화 처리기술 평가 능력','가연성 폐기물 배출 특성 분석 능력'],A:['환경 및 안전관련 법규 준수','환경오염을 최소화하고 자원순환을 극대화하려는 노력']},'06':{K:['순환경제사회 전환 촉진법','폐기물관리법','환경 관련 법규','열적처리기술별(소각, 열분해, 용융 가스화) 특징 및 장단점'],S:['폐기물 성상조사 결과 분석 능력','열적처리기술별 운영 사례 적용 능력','대기오염방지시설별 운영 사례 적용 능력','설계도서 해석 능력'],A:['환경 관련 법규 준수','최신의 기술과 운영사례를 지속적으로 수집하려는 노력']},'07':{K:['순환경제사회 전환 촉진법','폐기물관리법','폐기물처리시설 설치촉진 및 주변 지역 지원 등에 관한 법률','매립시설 설치기준'],S:['환경 관련 법규 해석 능력','설치 기준 해석 능력','설계도서 해석 능력','매립시설 설치기준 해석 능력'],A:['환경 및 안전 관련 법규 준수','매립기반시설 설계기준 준수']},'08':{K:['순환경제사회 전환 촉진법','폐기물관리법','폐기물의 국가 간 이동 및 그 처리에 관한 법률','화학물질관리법, 화학물질의 등록 및 평가 등에 관한 법률'],S:['유해 및 위험 인지 능력','유해 특성 평가 능력','오염인자 분석 능력','폐기물 발생 지점·시점·배출량·종류·유해성 정보 확인 능력'],A:['환경 및 안전관련 법규 준수','폐기물 공정시험기준 준수']},'10':{K:['순환경제사회 전환 촉진법','폐기물관리법','시설 유지관리지침','기계 설비별 매뉴얼'],S:['기계·전기·계측기 설비 유지 관리 능력','시험분석 능력','시설 운영 능력','관리 계획 수립 능력'],A:['환경 및 안전관련 법규 준수','유지관리 매뉴얼 준수']},'11':{K:['폐기물관리법','환경오염피해 배상책임 및 구제에 관한 법률','재난관리기본법','환경영향평가, 위해성 평가 방법론'],S:['환경위해 요소 사전 분석 및 위험도 평가 능력','재해예방 시나리오 및 계획서 작성 능력','재해예방 대응체계 설계 능력','관련 기관과의 협업 및 조율 능력'],A:['환경 및 안전관련 법령 준수','비상상황을 고려하여 신속한 의사결정체계를 유지하려는 의지']},'13':{K:['폐기물 공정시험기준','전국 폐기물 발생 및 처리현황','폐기물 배출 시설 분류 방법','폐기물 배출 특성'],S:['원단위 환산 능력','통계프로그램 활용 능력','환경 관련 법규 해석 능력','환경정책 변화 정보 수집 능력'],A:['통계자료를 정확하게 해석하려는 노력','관련 법령 및 자료를 지속적으로 확인하려는 노력']},'14':{K:['폐기물관리법','순환경제사회 전환 촉진법','자원의 절약과 재활용 촉진에 관한 법률','폐기물의 국가 간 이동 및 그 처리에 관한 법률'],S:['올바로 시스템 활용 능력','법령 및 지침 적용 능력','법적 허용기준·협의기준·환경기준 적용 능력','행정문서 작성 및 보고 능력'],A:['환경 및 안전 관련 법규 준수','데이터를 정확하게 관리하려는 노력']},'15':{K:['폐기물 공정시험기준','폐기물별 분석 방법','폐기물별 시료 채취 방법','폐기물별 시료 보관 방법'],S:['분석계획 작성 능력','폐기물 분석 자료 평가 능력','시료 채취 장비 사용 기술','시료 채취 기술'],A:['환경 및 안전 관련 법규 준수','공정시험기준 등 관련 규정 준수']}},
+ '23060102':{'14':{K:['정전작업, 활선작업 등 전기작업의 위험성에 관한 지식','감전(전격)·화재·폭발의 메커니즘에 관한 지식','이동형·휴대용 전기기계·기구의 위험성에 관한 지식','누전차단기의 작동 원리·종류·선정기준·설치요령'],S:['전기작업 형태와 장소를 파악할 수 있는 능력','전기사고·재해 발생의 메커니즘을 분석할 수 있는 능력','전기사고·감전사고 사례를 검색할 수 있는 능력','감전사고의 피해정도를 예측할 수 있는 능력'],A:['해당업무를 안전하고 법 위반 없이 처리하려는 책임감 있는 태도','법적 범위와 회사의 규정을 조사하고 사업장에 맞게 적용하려는 합리적인 태도']},'18':{K:['산업안전과 관련한 법령·기준에 관한 지식','관련법령·기준 준수, 평가에 필요한 방법과 절차에 관한 지식','정전기방지 대책 지식','절연저항·접지저항·정전용량 측정 원리'],S:['전기 관련 법령·기준·규정 해석 능력','전기 도서 해석 능력','사업장별 환경 분석 능력','화학물질의 종류 및 특성 이해 능력'],A:['관련법규 준수 의지','법규 변경에 따른 신속한 반영 의지']},'19':{K:['산업안전과 관련한 법령·기준에 관한 지식','관련법령·기준 준수, 평가에 필요한 방법과 절차에 관한 지식','정전기방지 대책 지식','절연저항·접지저항·정전용량 측정 원리'],S:['전기 관련 법령·기준·규정 해석 능력','전기 도서 해석 능력','사업장별 환경 분석 능력','화학물질의 종류 및 특성 이해 능력'],A:['관련법규 준수 의지','법규 변경에 따른 신속한 반영 의지']},'20':{K:['산업안전과 관련한 법령·기준에 관한 지식','관련법령·기준 준수, 평가에 필요한 방법과 절차에 관한 지식','정전기방지 대책 지식','절연저항·접지저항·정전용량 측정 원리에 관한 지식'],S:['전기 관련 법령·기준·규정 해석 능력','전기 도서 해석 능력','사업장별 환경 분석 능력','화학물질의 종류 및 특성 이해 능력'],A:['관련법규 준수 의지','법규 변경에 따른 신속한 반영 의지']},'21':{K:['전격에 위험을 결정하는 주요 인자에 대한 지식','감전 위험을 사전 점검 확인하고 관리할 수 있는 지식','감전 사고 발생 메커니즘','감전 사고 사례분석'],S:['감전 사고 특성에 따른 안전대책을 수립할 수 있는 능력','장치 및 시설에서 감전 위험 예방 안전관리 능력','활선 및 정전 작업 시 감전 예방 안전관리 능력','비상연락망 활용 능력'],A:['감전사고 위험을 예방하려는 노력','전기 관련법규를 준수하려는 노력']}},
+ '23060201':{'01':{K:['산업안전보건법 및 산업안전보건기준에 관한 규칙','사업장 위험성평가에 관한 지침','작업환경측정 및 정도관리 규정','근로자 건강진단 실시규정'],S:['현장조사 기술','평가서·측정장비 활용 기술','사업장 특성분석 능력','건강검진·작업환경측정 등의 관련 자료 분석 능력'],A:['현장조사 시 주의 깊은 관찰 태도','계획수립단계에 대해 전략적으로 사고하는 태도']},'02':{K:['산업재해예방계획의 수립 관련 법령','산업안전보건관리규정 작성에 관한 법령','산업안전보건위원회 활동에 관한 법령','근로자의 안전·보건교육에 관한 법령'],S:['현장조사 기술','의사소통을 위한 문서화 능력','관련 자료 및 통계에 관한 해석 기술','보건정보 공유·의사소통 능력'],A:['주의깊은 관찰 태도','근로자들의 요구사항에 대한 적극적인 수용']},'03':{K:['산업안전보건법','작업공정','응급처치의 기술적 내용 정보','재해유발 원인의 기술적 내용'],S:['현장조사 기술','응급처치 기술','현장보존 기술','재해관련 설비·기계의 정지 조치 능력'],A:['긴급상황에 대비하여 신속성을 갖는 태도','사고현장에 대한 세밀하고 객관적인 관찰태도']},'05':{K:['실시계획서 작성 방법','산업재해가 발생한 작업 파악 여부','유해·위험 요인이 발생한 작업에 관한 지식','유해·위험요인에 의한 부상 또는 질병의 발생에 관한 지식'],S:['실시 계획서 작성 능력','직업관련성 질환 발생 작업에 대한 선정 능력','예견 가능한 평가대상 선정 능력','작업표준·작업절차 파악 능력'],A:['사전자료 준비를 위한 적극적인 노력','작업에 대한 세밀하고 객관적인 관찰 태도']},'06':{K:['물리적 유해인자','화학적 유해인자','생물학적 유해인자','작업환경측정 기관을 비교 분석할 수 있는 지식'],S:['작업장 유해요인 파악 능력','유해요인 목록표 작성 능력','산업안전보건법 이해 및 현장 적용능력','작업환경측정 기관을 선정할 수 있는 능력'],A:['산업안전보건법 준수','적극적인 모니터링 태도']},'07':{K:['작업시간 및 작업자세, 휴식시간과 건강장해의 관계','작업강도 및 조건에 따른 적절한 휴식시간','근로시간과 관련된 근로조건','작업에 따른 업무적합도'],S:['직무스트레스 평가도구 활용 능력','뇌·심혈관질환 발병위험도평가 도구 활용 능력','호흡기보호프로그램 운영 능력','청력보존프로그램 운영 능력'],A:['근로시간과 휴식시간 준수 지도 노력','자각증상 호소자의 문제해결을 위한 노력']},'08':{K:['유해인자별 건강장해','건강진단 종류','유해인자별 검사항목·실시주기','건강진단 실시 법적 근거'],S:['건강진단 실시를 위한 문서 및 계획서 작성능력','건강진단 장비 활용 기술','건강진단 장비 운용 능력','자료 준비를 위한 컴퓨터 활용 능력'],A:['개인정보 보호를 위한 태도','건강진단 실시 전 유의사항 준수태도']},'09':{K:['산업안전보건법','재해 및 응급환자 분류','감염병 예방 및 관리에 관한 법률','응급처치 방법'],S:['조직체계 활용 기술','환경 분석 기술','응급처치 교육 자료 제작 기술','교육(실습) 강의 기술'],A:['응급의료 절차 준수','응급의료 기준 준수']},'10':{K:['국민건강증진법','산업안전보건법','사업장 여건과 현황','KOSHA-GUIDE'],S:['정보처리(수집·분석·조직·관리·활용) 기술','기초 서술통계의 산출과 도표 작성 기술','건강증진 계획안 작성 기술','홍보와 마케팅 기술'],A:['개인의 비밀보장에 대한 확고한 소신','정확한 최신 정보 습득을 위한 노력']},'11':{K:['사업장 산업보건교육에 관한 법적 근거','사업장의 여건에 관한 지식','정기교육·신규채용교육·작업내용변경교육·특별안전보건교육 구성','사업장 산업보건교육의 원리·방법·매체·자원·평가'],S:['정보처리(수집·분석·조직·관리·활용) 기술','기초 서술통계의 산출과 도표 제작 기술','산업보건교육 계획안 작성 기술','매체제작 기술'],A:['지침준수에 대한 책임감 있는 태도','사업장의 지원요청에 대해 긍정적 수용']},'13':{K:['관련법령·기준·지침에 따른 보건관련 문서에 대한 지식','기록이 필요한 문서에 대한 지식','인·허가 문서 기록에 필요한 지식','문서의 식별·보관·보호·검색·교육 및 폐기에 대한 지식'],S:['보건관련 문서를 분류할 수 있는 능력','기록이 필요한 문서를 분류할 수 있는 능력','인·허가가 필요한 문서를 분류할 수 있는 능력','쓰임새에 따라 문서를 분류할 수 있는 능력'],A:['해당 현장에 필요한 문서를 면밀히 분석하는 태도','임무에 대한 요구사항을 정확히 파악하고 실행하는 태도']}},
+ '20010703':{'02':{K:['인공지능 학습 알고리즘 지식','확실성과 불확실성 방법론','인공지능 유형별 모델 확보 이론','학습 이론'],S:['요구사항 중요도 분석 능력','학습모델 프로그래밍 기술','과제환경 정의 기술','앙상블(Ensemble) 기법'],A:['선정 프로세스 흐름을 주의 깊게 관찰하려는 노력','문제를 심도 있게 분석하고 개선하려는 노력']},'03':{K:['인공지능 데이터 이론','데이터 수집 방법','인공지능 데이터셋 구축 방법','인공지능 윤리 가이드북'],S:['인공지능 데이터 학습 기법','IoT 기술(Sensor, Actuator)','인공지능 인터페이스 기술','워드임베딩(Word Embedding)'],A:['데이터 출처(Source)를 정확하게 파악하려는 노력','인공지능 윤리기준을 준수하려는 노력']},'05':{K:['인공지능 객체의 표현방식','신호처리 관련 지식','데이터 시각화 지식','초자동화(Hyperautomation) 지식'],S:['객체의 표현 방식별 입출력 기술 능력','인공지능 객체 분류 능력','시각화 프로그램 활용능력','특징의 변수화 처리 능력'],A:['전체 특징을 입체적으로 파악하려는 노력','새로운 기술의 특징을 적극적으로 파악하려는 노력']},'07':{K:['인공지능 서비스 유형별 검증 지표','글로벌 선도 기업의 유사 인공지능 서비스 모델 지표 트렌드','인공지능 학습 알고리즘','인공지능 서비스 아키텍처'],S:['인공지능 서비스별 주요 평가 지표 활용 능력','취합 지표 분류 및 체계화 기술','설문조사 및 분석 기법','통계적 모델링 및 검증 기법'],A:['인공지능 모델을 평가하기 위한 최신 기술을 적극적으로 수용하려는 자세','윤리적이고 공정한 평가를 위한 엄격한 기준을 따르려는 노력']},'09':{K:['데이터 품질 특성','특정 분야에 대한 데이터 품질 특성에 대한 산업 표준','데이터 품질을 평가할 수 있는 정량적·정성적 방법론','인공지능 윤리 가이드북'],S:['프로젝트 목표에 따라 적절한 데이터 품질 기준을 제작하는 능력','데이터 품질 특성·기준·평가 방법을 명확하게 문서화하는 능력','예상되는 데이터 품질의 문제를 식별할 수 있는 능력','모델링 단계별 데이터 품질 문제의 잠재적 영향을 예측하는 능력'],A:['데이터 품질 특성 기준에 대해 모델의 목표를 반영하려는 적극적인 자세','변화하는 목표에 따라 품질특성과 기준을 개선하고자 하는 노력']}},
+ '20010105':{'09':{K:['시각화 전략 수립 방법','시각화 요구사항 분석·도출 및 정의 방법','페르소나 및 시나리오 개발 및 활용 방법','스토리보드 작성 및 활용 방법'],S:['시각화 전략 수립 능력','시각화 요구사항 개발 능력','페르소나 및 시나리오 개발 능력','페르소나 및 시나리오 분석 능력'],A:['구체적이고 체계적인 시각화 전략을 수립하기 위한 논리적인 태도','다양한 구성원들의 의견을 청취하고 조율하려는 개방적 태도']},'10':{K:['데이터 정제 절차','필요 데이터 식별 방법','자료 구조','데이터 분석 방법론'],S:['데이터 오류 및 결측치 탐색 능력','유형별 데이터 보정 및 대체 기술','전처리 실행 도구 사용 기술','데이터 품질 분석 능력'],A:['데이터의 형태와 수준에 따라 필요한 정제작업을 집중할 수 있는 태도','데이터 표준에 대한 수용적인 태도']},'11':{K:['기술통계법','데이터 분석 대상 업무','데이터 분석 목적','표본 추출 기법'],S:['데이터 분석 배경·이슈·기대효과·제약사항 파악 능력','데이터 분석요건 식별 능력','기술 통계 분석 기술','통계 기법 선정 능력'],A:['기술이 아닌 업무 중심으로 보려는 자세','요소기술간 관계 및 종속성을 면밀히 살펴보려는 태도']},'12':{K:['빅데이터 분석 대상 도메인 지식','빅데이터 분석 피처 종류','빅데이터 분석 피처 추상화 표현 방식','연속형/범주형 데이터 표현'],S:['데이터베이스 기술','빅데이터 분석 피처 분류 능력','빅데이터 분석 피처 변수 처리 능력','벡터화 표현 능력'],A:['전체 피처를 파악하려고 하는 노력','논리적인 사고를 하는 자세']},'13':{K:['추측통계법','통계 처리 결과 해석 방법','과적합과 모델 설명력','표본 샘플링 통계 방법'],S:['가설 설정 능력','데이터 중심성·분산성·산포성 활용 능력','데이터 확률분포의 활용 능력','독립변수와 종속변수의 설정 기술'],A:['비즈니스 요구사항을 정확하게 정의하고 식별하려는 태도','비즈니스와 통계 방법론 간의 상호 관련성을 이해하려는 태도']},'14':{K:['빅데이터 분석 모델링 프로세스','빅데이터 분석 모델 평가 기술 동향','빅데이터 분석 모델 유형 평가 지표','명세서 작성 기법'],S:['분석 모델 평가 기준 활용 기술','분석 모델 평가지표 후보군 구조화 능력','분석 프로그램 활용 기술','모델 평가 자동화 처리 기술'],A:['분석적이고 논리적인 사고','문제에 대한 호기심과 본질을 파고들려고 하는 집요한 자세']},'15':{K:['데이터 전처리 기법','피처 엔지니어링 기법','데이터 분석 알고리즘 파라미터','데이터 분석 알고리즘 성능 지표'],S:['데이터 분석 플랫폼 구성 기술','데이터 분석 프로그래밍 기술','데이터 처리 기술','분석 모델 검증 기술'],A:['분석 플로우 구성요소를 정확하게 식별하고 정의하는 태도','분석 프로세스를 분석하고 효율화하려는 자세']},'16':{K:['데이터베이스 쿼리(Query) 언어','데이터 분석 언어 기본 문법','데이터 분석 언어 문법 오류','데이터 분석 언어 디버깅 절차'],S:['데이터베이스 쿼리(Query) 활용 능력','데이터 분석 언어 코딩 기술','데이터 분석 언어 디버깅 기술','데이터 분석 언어 코드 리뷰 기술'],A:['데이터 분석 언어의 규칙을 준수하려는 태도','문법 오류를 이해하고 수정하려는 적극적인 태도']}},
+ '20010601':{'01':{K:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)','조직의 핵심 사업 및 미션에 관한 지식'],S:['경영환경 분석 능력','요구사항 도출 능력','전략 및 계획 수립 능력','전략 및 기획 보고서 작성능력'],A:['정보보호 관련 법령을 준수하려는 태도','다양한 이해관계자가 참석하여 합의에 도달하려는 자세']},'03':{K:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)','정보보호 정책·표준·지침·절차'],S:['개인정보 보호법 분석능력','정보통신망법 분석능력','ISMS-P 분석능력','정책·표준·지침·절차의 분석 능력'],A:['정보보호 관련 법 및 규정의 변경 내역을 지속적으로 숙지하려는 태도','정책수립을 위한 조직의 요구사항을 성실히 반영하려는 자세']},'05':{K:['프로젝트 관리','정보보안 위험관리(ISO/IEC 27005)','정보시스템의 구성','정보자산 식별 기법'],S:['조사분석 능력','정보자산관리 도구 사용 능력','정보보호 아키텍처 분석 능력','위험관리 프레임워크 응용 기술'],A:['정보보호에 대한 논리적이고 객관적인 사고','정의된 평가기준과 절차의 준수 태도']},'06':{K:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)','정보보호 정책·표준·지침·절차'],S:['정보보호 관련 법 및 규정 분석 능력','정책·표준·지침·절차의 분석 능력','정보보호 정책 체계파악 능력','정보자산의 구성과 현황 파악 기술'],A:['조직의 정보보호 정책과 관련 법 및 규정을 준수하려는 태도','정보보호 관리체계 내의 정보자산을 누락 없이 식별하려는 자세']},'08':{K:['정보보안 통제를 위한 실무지침(ISO/IEC 27002)','정보보호 및 개인정보보호 관리체계(ISMS-P)','네트워크 개념','네트워크 보안(ISO/IEC 27033)'],S:['네트워크 보안 장비 운용 기술','디지털 증거분석 및 해석 능력','네트워크 보안솔루션 운영 기술'],A:['설계된 네트워크 보안을 준수하여 구현하려는 노력','객관적인 테스트와 적극적인 문제해결 태도']},'09':{K:['정보보호 및 개인정보보호 관리체계(ISMS-P)','정보보안 통제를 위한 실무지침(ISO/IEC 27002)','애플리케이션 개념','오픈소스 웹 애플리케이션 보안 프로젝트(OWASP)'],S:['프로토콜 활용 능력','애플리케이션 보안 장비 운용 능력','애플리케이션 취약점분석 능력'],A:['설계된 애플리케이션 보안을 준수하여 구현하려는 노력','객관적인 테스트와 적극적인 문제해결 태도']},'10':{K:['정보보호 및 개인정보보호 관리체계(ISMS-P)','정보보안 통제를 위한 실무지침(ISO/IEC 27002)','정보시스템의 보안운영 정책','서비스 공격 유형'],S:['서버 보안 소프트웨어 설치 및 운영 기술','서버·운영체제 취약점 분석 능력','로그 분석 능력','보안 아키텍처 수립 기술'],A:['설계된 서버 보안을 준수하여 구현하려는 노력','객관적인 테스트와 적극적인 문제해결 태도']},'11':{K:['IT보안 교육과 훈련 프로그램 수립(NIST SP 800-50)','개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)'],S:['정보보호 교육 수행 능력','정보보호 이해도 및 수준 파악 기술','정보보호 교육계획 수립 능력','정보보호 교육훈련 평가 능력'],A:['피교육자의 요구사항을 적극적으로 반영하려는 태도','정보보호 교육훈련 책임감']},'12':{K:['물리보안 운영지침','물리보안 수칙','정보보호 출입통제 절차','정보보안 통제를 위한 실무지침(ISO/IEC 27002)'],S:['IT기기 반출입 점검 기술','출입자 관리 능력','IT환경 설비 운용 능력','영상 분석 능력'],A:['취약점과 위험요소의 누락을 방지하기 위한 적극적 노력 자세','조직의 물리 보안시스템 구성과 현황을 지속적으로 숙지하려는 노력']},'13':{K:['보안시스템의 개념','보안시스템 특성','보안시스템 구성도','보안시스템 장비 특성'],S:['보안시스템 및 관련 소프트웨어 운용 능력','보안시스템 운영 현황 파악 능력','보안시스템 운영 현황 분석 능력','보안시스템 운영 기술'],A:['보안시스템의 안정적인 운용을 위한 적극적인 자세','보안시스템 상태를 정확하게 분석하려는 태도']},'14':{K:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)','전자금융거래법'],S:['정보화 자산 식별 능력','위험 도출 능력','보안성 검토 기준 해석 능력','예상 취약점 도출 능력'],A:['정보화 사업 추진으로 인한 영향 및 위험요소를 정확히 파악하려는 태도','보안성 검토 기준 적용을 위해 적극적인 현황 검토 의지']},'15':{K:['정보통신망 이용촉진 및 정보보호 등에 관한 법률','개인정보 보호법','전자금융거래법','신용정보의 이용 및 보호에 관한 법률'],S:['감사 자동화 도구 사용 기술','보안 감사 기획 능력','감사자료 수집 및 분석 기술','감사대상 현장 관찰 능력'],A:['감사 대상 및 범위 선정 시 합리적인 태도','조사된 사실 관계에 대한 근본 원인을 파악하려는 노력']},'16':{K:['개인정보 보호법','정보통신망 이용촉진 및 정보보호 등에 관한 법률','정보보호 및 개인정보보호 관리체계(ISMS-P)','개인정보 처리 위·수탁 안내서'],S:['계약서 문서 검토 능력','보안 이슈 점검 계획 수립 능력','위험 대응 전략 계획 수립 능력','협력사 보안 운영계획 수립 능력'],A:['보안운영의 이슈를 관리하고자 하는 적극적인 자세','상황분석에 대해 종합적으로 대응하려는 태도']}},
+ '02030201':{'01':{K:['회계상 거래와 일상생활에서의 거래를 구분하는 지식','교환거래, 손익거래, 혼합거래','거래의 이중성','입금·출금·대체전표에 대한 지식'],S:['거래의 결합관계 구분 능력','다양한 거래유형에 대한 구분 능력','거래를 장부에 기입·분석하는 능력','거래유형별로 전표작성 능력'],A:['거래를 신속하고 정확하게 구분하려는 태도','거래에 대한 정확한 판단력']},'02':{K:['대금의 지급방법 및 지급기준','입·출금 전표 및 현금출납부 작성 방법','수신·여신 관련 법률','예금계정'],S:['입·출금에 대한 근거자료 확인 능력','소액현금 관리 능력','기업 자금사용계획 활용 능력','법인카드 관리 능력'],A:['현금 관리 규정을 준수하는 태도','현금시재 관리에 대한 정확한 태도']},'03':{K:['원가 개념','원가흐름에 대한 분개 방법','원가의 다양한 관점에 따른 분류 방법','원가배부기준'],S:['원가 및 비용에 대한 구분 능력','원가흐름에 대한 분개 능력','원가의 다양한 관점에 따른 분류 능력','공통원가의 배부'],A:['원가 및 원가계산에 대한 정확성','원가배부에 대한 정확성']},'04':{K:['기업실무에 적용되는 회계관련규정','계정과목','원가흐름','발생주의'],S:['계정과목별 명세서 작성 능력','계정과목 분류 능력','손익산정 능력','자산·부채에 대한 평가 능력'],A:['회계관련규정을 준수하려는 의지','장부를 정확하게 작성하려는 의지']},'05':{K:['계정과목 체계','회계관련규정','회계프로그램 운용','회계순환과정'],S:['회계프로그램 활용 능력','해당 거래에 대한 회계처리 능력','문서작성 프로그램 활용 능력'],A:['법률 준수 태도','면밀하게 자료를 살펴보는 태도']},'07':{K:['회계관련규정','내부회계관리제도','외부감사 및 회계 등에 대한 규정','재무제표 작성 방법에 대한 관련 지식'],S:['증빙자료에 대한 거래처·내용 조회 확인 능력','내부감사 결과보고서 작성 능력','감사결과에 따른 신속한 사후조치 능력','회계감사에 따른 주석 작성 능력'],A:['감사준비 자료에 대한 판단력','감사준비에 따른 책임감']},'08':{K:['주식회사의 외부감사에 관한 법률','사업결합회계관련규정','자본시장과 금융투자업에 관한 법률','공정거래법'],S:['재무정보 수집 능력','외화 환산 능력','연결조정분개 처리 능력','연결재무제표 작성 능력'],A:['연결재무정보 수집에 대한 책임감','적극적인 협업 태도']},'09':{K:['비영리조직에 관한 일반적 정의','비영리조직 관련규정','비영리조직의 개별적인 특성','비영리조직의 재무제표 작성과 표시 지침서'],S:['비영리성을 파악할 수 있는 능력','비영리활동 파악 능력','비영리조직회계기준 적용 능력','비영리조직의 재무제표 작성 능력'],A:['비영리조직 관련 법률 준수 태도','회계처리에 대한 정확성']},'10':{K:['원가행태','원가함수(선형함수, 비선형함수)','학습효과','미래원가추정 방법'],S:['과거자료를 활용한 원가추정 기술','과거자료 없이 미래원가를 추정하는 기술','회귀분석을 위한 통계프로그램 사용 능력','재무제표 분석 능력'],A:['원가변동성에 대한 분석적 사고','학습효과 적용을 위한 적극적·개방적 자세']},'12':{K:['기업실무에 적용되는 회계관련규정','계정과목에 대한 지식','회계관련규정','재무제표의 이해'],S:['계정과목별 명세서 작성 능력','계정과목 분류 능력','자산·부채·자본에 대한 평가 능력','손익산정 능력'],A:['원활한 의사소통 자세','수리적 정확도를 기하려는 자세']}},
+ '02030101':{'01':{K:['예산관리규정','실적 분석을 위한 관리회계','실적 분석을 위한 재무회계','대내·외 환경 분석'],S:['회계프로그램 활용 능력','스프레드시트 활용 능력','실적 분석 능력','기준지표 작성을 위한 관련 정보검색 기술'],A:['예산항목의 계획 대비 실적 차이 분석을 위한 분석적 태도','타부서와의 협업적 태도']},'02':{K:['외부 환경분석','내부역량 분석','SWOT 분석','영업 전략에 대한 이해'],S:['스프레드시트 활용 능력','환경분석 기법 활용 능력','인력수요 예측 기술','예산항목 간 비중 배분 능력'],A:['사업전략 수립을 위한 전략적 사고','전체 정보를 분석하기 위한 포괄적 사고']},'03':{K:['예산운영지침','예산관리규정','사업단위별 업무 내용','예산편성지침에 관한 지식'],S:['현업담당자에게 세부예산수립기준을 교육할 수 있는 능력','세부예산수립기준을 발표할 수 있는 능력','문의사항 대응 능력','스프레드시트 활용 능력'],A:['타부서와의 협업적 태도','타부서와의 이견을 조율할 수 있는 설득적 자세']},'04':{K:['제조원가명세서 항목','수익과 비용계정의 분류','기업회계기준에서 규정하고 있는 포괄손익계산서 작성','자산·부채·자본 계정 분류'],S:['포괄손익계산서 작성 능력','스프레드시트 활용 능력','당기에 영향을 미치는 전기 계정과목 분석 능력','재무상태표 작성 능력'],A:['계정금액의 정확성을 확인하기 위한 분석적 태도','재무제표와 연계 관계를 파악하기 위한 논리적 태도']},'05':{K:['예산관리규정','위임전결규정','예산운영지침','회계원리'],S:['예산운영지침 작성 기술','발표용 프로그램 활용 능력','예산프로그램 활용 능력','스프레드시트 프로그램 활용 능력'],A:['규정·지침을 쉽게 설명하려는 태도','논리적으로 예산운영지침을 설명하는 태도']},'06':{K:['예산관리지침','예산관리규정','위임전결규정','계정과목 정의와 분류'],S:['계획대비 차이 분석 능력','재무제표 분석 능력','스프레드시트 프로그램 활용 능력','보유자원 현황 분석 능력'],A:['예산의 효율적 집행을 위한 관리자적 자세','예산 실적 차이에 대하여 정확한 원인을 찾으려는 노력']},'07':{K:['예산관리규정','조업도 변동이 원가·수익·이익에 미치는 영향 분석','민감도 분석','목표원가관리'],S:['스프레드시트 활용 능력','민감도 추정 분석 능력','사업 환경 분석 능력','위험탐지 체크리스트 작성 능력'],A:['잠재 위험을 발견하고 측정할 수 있는 관찰자적 자세','예산운영에 대한 철저한 위기관리를 수행하기 위한 경영자적 자세']}},
+ '02030102':{'01':{K:['영업활동 필요자금에 대한 회계적 지식','영업활동과 관련된 재무제표 지식','적정한 현금흐름 추정 기법','재무 분석에 대한 이해'],S:['현금흐름 적정성 분석 능력','스프레드시트 함수 활용기술','투자대상의 가치평가 기술','기초 함수를 포함한 스프레드시트 활용 기술'],A:['타부서와 협력적 태도','영업활동 관련 재무적 결과를 정확하게 도출하기 위한 수리적 사고']},'02':{K:['자금 조달과 관련된 금융상품의 이해','자금조달의 종류와 절차','자금 조달조건에 대한 타당성 분석','자금조달 관련 법규 및 세제'],S:['기초 함수를 포함한 스프레드시트 활용 기술','자금조달 방안별 타당성 분석기술','자금조달 비용 산출 기술','자금조달을 위한 사업계획서 작성 능력'],A:['자금시장에 대한 다양하고 폭넓은 정보 수집 자세','조달조건의 타당성을 객관적으로 판단하려는 자세']},'04':{K:['화폐의 시간가치 이해','투자 자산과 유형 자산 회계처리 방법','금융상품의 이해','투자 자산의 종류와 운용'],S:['스프레드시트 활용기술','여유자금 운영 기술','자금운용을 위한 일정표 작성 기술','장·단기 여유자금 운용 기술'],A:['금융시장과 상품에 대해 치밀하게 분석하는 자세','가용자금의 운용결과가 기업에 미치는 영향에 대한 분석적 자세']},'05':{K:['공시 관련 규정','공시를 위한 재무 정보 이해','공시 서류 작성 실무','재무 정보에 대한 이해'],S:['공시 서류 작성기술','금융감독원 전자공시시스템 편집기 사용 기술','회계프로그램 활용 능력','재무정보 정리 능력'],A:['정보 기입을 위한 꼼꼼한 자세','투자자의 이익을 고려하는 자세']},'06':{K:['재무위험에 대한 분류방식','위험요소별 대응 방안','리스크 관리 규정','재무 위험 최소화를 위한 손익분석 기법'],S:['자금 운영 기술','위험률 분석 기술','위험통제 기술','재무 위험분류 능력'],A:['정확성을 높이기 위한 세심한 자세','적극적인 위험관리 의식']},'07':{K:['자금운용 성과 분석','목표관리 절차와 방법','관리회계 실무','자금운용 평가 보고서 작성 방법'],S:['성과관리 능력','실적분석 능력','평가결과 보고서 작성 능력','평가보고서 프레젠테이션 능력'],A:['자금운용을 위한 경영자적 자세','자금운용결과를 객관적으로 분석하려는 의지']}},
+ '20010301':{'01':{K:['비즈니스 환경분석 기법','BSC(Balanced Score Card) 목표 수립 체계','SMART 기법','ITIL(Information Technology Infrastructure Library)'],S:['수집 정보 분석 기술','목표 달성 방안 수립 능력','목표 미달 원인 분석 능력','원가분석 능력'],A:['현재 수준에 대한 개선 의지','주어진 현상의 근본 원인을 식별하려는 탐구심']},'02':{K:['시스템 용량 산정 기법','제품 동향','정보통신 장비 운용 지식','예산산정 회계 기법'],S:['대면·비대면의 의사소통 능력','시스템별 용량산정 기술','구매 예산 수립 능력','계약 협상 능력'],A:['서비스 목적에 맞게 최적의 제품을 공급하고자 하는 의지','최적의 가격으로 최고의 제품을 공급하려는 태도']},'03':{K:['SLM(Service Level Management) 개념','CMMi(Capability Maturity Model integration)','ITIL(Information Technology Infrastructure Library)','ISO/IEC 20000 국제표준'],S:['서비스 수준관리 조직 수립 능력','일정계획 수립 능력','서비스 카탈로그 작성 능력','서비스명세 도출 능력'],A:['현재 수준에 대한 개선 의지','주어진 현상의 근본 원인을 식별하려는 탐구심']},'05':{K:['시스템 운영 방법','정보시스템 운영관리 지침','ITIL(Information Technology Infrastructure Library)','ITSM(IT Service Management)'],S:['애플리케이션 운영 기술','애플리케이션 데이터 흐름 파악 능력','애플리케이션 구동 환경 이해 능력','SQL 구현 능력'],A:['비즈니스 프로세스를 습득하고자 하는 능동적 태도','각기 다른 애플리케이션의 환경별 기술 습득 의지']},'07':{K:['네트워크 개념','네트워크 기술 동향','네트워크 설계 산출물 해독 지식','네트워크 테스트 방법'],S:['네트워크 구성 및 구축 능력','네트워크 솔루션 및 관련 소프트웨어 운영 능력','서버 구성 능력','서버 운영 능력'],A:['시스템의 안정적 운용을 위한 강한 의지','기술 기준 준수']},'08':{K:['데이터베이스 운영 방법','비즈니스 로직','SQL 문법','정보통신망 이용촉진 및 정보보호 등에 관한 법률'],S:['예산관리 능력','데이터베이스 관리시스템 운영 기술','애플리케이션 간 데이터 흐름 파악 능력','SQL 구현 능력'],A:['기존 시스템을 성실히 운영하는 태도','시스템 장애 발생 시 역할분장·신속대응 및 보고 의지']},'09':{K:['시스템 보안 정책','비즈니스 도메인 특성','정보시스템 운영관리 지침','보안 운영관리 지침'],S:['IT 보안 성과평가 능력','보안 계획 수립 능력','핵심 개선사항 도출 능력','예산관리 능력'],A:['결과에 대한 보안 유지','관련부서 및 조직원 간 원활하게 의사소통을 하려는 노력']},'11':{K:['백업시스템 연계 구조','백업방식별 수행원리','백업방식별 운영관리 방법','백업용량 산정 기법'],S:['백업현황 조사 및 분석 기술','백업장비 운영 능력','데이터베이스 관리시스템 운영 기술','파일시스템 운영 능력'],A:['사용자 및 관리자의 요구사항을 적극적으로 수용하려는 의지','서비스 가용성 측면에서 백업 수행능력 향상을 고민하는 의식']},'12':{K:['고가용성 구축 및 운영 기법','가용성 측정 기법','위험관리 방법','업무 연속성계획(BCP) 및 업무 영향분석(BIA) 개념'],S:['시스템 용량 산정 능력','고가용성(HA)·결함허용(Fault Tolerance) 구성 및 운영 능력','이중화체계 검증 기술','위험분석 및 전략 수립 능력'],A:['서비스 품질향상을 위해 가용성 향상을 검토하는 태도','자신의 업무에 책임감을 갖고 역할을 다하려는 의지']},'13':{K:['비즈니스 도메인 특성','응용시스템 정보','표준 용어사전','애플리케이션 아키텍처 지식'],S:['변경 요구사항의 우선순위 식별 능력','코드 검토 기술','변경 요구사항을 기존 아키텍처에 맞게 설계할 수 있는 능력','애플리케이션 테스트 도구 사용 기술'],A:['고객의 변경요구를 경청하는 의식','요구사항의 모호성을 줄이고 명확하게 확인하려는 태도']},'14':{K:['하드웨어 기술 동향','단말장치 연계 구조','단말장치 구동 소프트웨어(Device Driver)','시스템 운영 환경 정보'],S:['PC·주변장치 등 설치 및 환경 구성 기술','운영체제 운영 능력','단말 응용프로그램 설치 및 업그레이드 기술','통신케이블 테스트 도구 사용 기술'],A:['자신의 업무에 책임감을 갖고 역할을 다하려는 의지','상이한 환경의 하드웨어별 특성을 이해하고자 하는 능동적 태도']},'15':{K:['하드웨어 기술 동향','IT시스템 운용 방법','시스템 운영 환경 정보','네트워크 전송 프로토콜 및 계층별 네트워크 장비 개념'],S:['서버 설치 기술','서버 구성 능력','서버 운영체제 활용 능력','데몬 패키지 관리 기술'],A:['자신의 업무에 책임감을 갖고 역할을 다하려는 의지','상이한 환경의 하드웨어별 특성을 이해하고자 하는 능동적 태도']},'16':{K:['요구사항 관리 기법','네트워크 서비스 개념','정보통신 장비 운용 지식','네트워크 유지보수 방법'],S:['네트워크 구성 및 구축 능력','네트워크 운영 요구사항 분석 기술','비용·서비스 등 적정성 분석 기술','네트워크 시험 및 분석 기술'],A:['사업을 전반적으로 이해하려는 의지','고객의 요구사항을 수용하는 태도']},'17':{K:['서비스데스크 기술 동향','벤치마킹 기법','ITIL(Information Technology Infrastructure Library)','서비스데스크 설계 방법'],S:['서비스데스크 자동화 도구 적용 능력','IVR(Interactive Voice Response) 기술','CTI(Computer Telephony Integration) 기술','ARS(Automatic Response Service) 기술'],A:['현재 시스템 수준에 대한 개선 의지','서비스데스크 도입에 대한 적극적인 태도']},'18':{K:['기대효과 분석 방법','서비스 제공 대상 및 사용법','서비스데스크 운영 프로세스'],S:['사용자 응대 기술','사용자 만족도 조사 능력','사용자 불만 처리 능력','성과분석 시스템 활용 능력'],A:['고객 중심적 사고와 행동 의지','고객이 없으면 지원부서도 없다는 태도']},'19':{K:['데이터베이스 테이블 설계 기법','형상 감사(Audit) 지식','구성관리 절차','구성관리 데이터베이스(CMDB)'],S:['SQL 문법 활용','데이터베이스 관리시스템 운영 기술','Unix, Linux, x86 서버 관리 기술','네트워크 관리 능력'],A:['정확한 정보를 수집·등록·유지하려는 의지','객관적이고 중립적인 관점에서 점검하려는 태도']}},
+ '20010303':{'01':{K:['ITSM(IT Service Management) 프로세스','ITSM 품질 개선 프로세스','ISO/IEC 20000 국제표준','ITIL(Information Technology Infrastructure Library)'],S:['조직 전략 분석 능력','비즈니스 목표 분석 능력','사업 전략 수립 능력','계약문서 해석 능력'],A:['다양한 요구사항을 긍정적으로 수용하려는 의지','사내 표준 프로세스 준수']},'02':{K:['기술지원 서비스 정책','ITSM 기술지원 서비스 관리 절차','IT시스템 아키텍처 분석 방법','IT시스템 운영환경 분석 방법'],S:['인수업무 체크리스트 작성 능력','비즈니스 도메인 분석 능력','IT시스템 아키텍처 분석 능력','IT시스템 운영환경 분석 능력'],A:['정보를 적극적으로 수집하려는 의지','기술 지원 정책 준수']},'03':{K:['IT기술지원 프로세스','IT기술지원 요청사항 분류 체계','정보기술 기본 이론','기술지원 대상 IT 시스템 현황'],S:['기술지원 접수시스템 활용 능력','IT 시스템 매뉴얼 해석 능력','고객응대 사례 분석 능력'],A:['고객의 요청에 대한 적극적 수용','기술 지원 계약 범위 준수']},'04':{K:['장애 관리 방법','장애 관리 시스템 매뉴얼','장애 처리 절차','기술지원 대상 IT 시스템 구조'],S:['최신 IT 기술별 장애 원인분석 능력','IT 시스템 장애 원인분석 능력','장애 관리 시스템 운용 능력','장애 정보 검색 능력'],A:['다양한 시각으로 장애 처리 방안 접근 노력','최신 IT기술에 대한 연구 노력']},'05':{K:['기술지원 대상 IT 시스템 구조','기술지원 대상 IT 시스템과 관련된 외부 기술','ITSM 정보시스템 개선 절차','정보시스템의 규격'],S:['IT 시스템 운용 능력','IT 시스템 아키텍처 설계 능력','시스템 개선 분석 능력','기술지원 IT 시스템 활용 기술'],A:['협조 부서와 원활히 의사소통하는 의지','개선 절차를 준수하려는 노력']},'06':{K:['기술지원 대상 IT시스템 점검관리 정책','기술지원 대상 IT시스템 점검관리 매뉴얼','SLA(Service Level Agreement) 개념','SLM(Service Level Management) 개념'],S:['IT 시스템 점검 항목 분류 기술','IT 시스템 분석 능력','지식관리시스템(KMS) 활용 능력','IT시스템 점검 능력'],A:['상호간에 검토하고 확인하는 노력','절차 중심으로 정확한 작업을 추진하려는 노력']},'07':{K:['SLA(Service Level Agreement)','SLM(Service Level Management)','IT서비스 품질 관리 기법','SERVQUAL 모델'],S:['IT시스템 아키텍처 설계 능력','평가시스템 평가지표 설계 능력','기술지원 평가시스템 구축 기술','기술지원 서비스 평가시스템 활용 능력'],A:['고객 및 이해관계자 요청의 적극적인 수용','기술지원 서비스 개선 의지']},'08':{K:['요구사항 분석 방법','PMBOK(Project Management Body Of Knowledge)','ITIL Service Design 영역','COBIT(Control Objectives for Information and Related Technologies)'],S:['기능 및 비기능 요구사항 분석 능력','요구사항 관리 프로세스 구축 능력','이슈 분류 능력','요구사항 정의서 작성 능력'],A:['요구사항 관리 품질을 확보하기 위한 적극적인 노력','요구사항을 정확하게 정의·식별·파악하려는 노력']},'09':{K:['SCM(Software Configuration Management) 우수 사례','CMDB(Configuration Management Database) 설계 방법론','ITIL Service Design 영역','COBIT'],S:['형상관리 체계 명세화 능력','형상 분류 체계 설계 능력','형상간 관계 식별 능력','형상관리 시스템 운영 능력'],A:['관련 업무 효율성을 개선하려는 노력','전체적 업무 연관성을 수용하려는 의지']},'11':{K:['IT 품질관리 방법','품질목표 설정 방법','정보시스템 운영 방법','품질관리 방법론'],S:['IT 시스템 분석 능력','품질 요구사항 분석 능력','제품 규격 분석 능력','기능 및 비기능 요구사항 분석 능력'],A:['고객의 요구사항에 대한 적극적인 수용','객관적인 자료를 기반으로 한 품질 목표를 준수하려는 의지']},'12':{K:['기술지원 대상 IT 시스템 구조','기술지원 대상 IT 시스템 기능','IT기술지원 프로세스 이해','소프트웨어 개발 프로세스'],S:['IT 시스템 장애 대응 능력','장애관리 매뉴얼 작성 능력','데이터 분석 기반 개선 보고서 작성 능력','품질 통제 도구 활용 능력'],A:['종합적으로 장애 상황을 분석하려는 노력','이력관리를 위한 이해관계자간 원활한 의사소통 의지']},'13':{K:['기술지원 대상 IT 시스템 유지보수 정책','기술지원 대상 IT 시스템 유지보수 매뉴얼','SLA(Service Level Agreement) 개념','SLM(Service Level Management) 개념'],S:['지식관리시스템(KMS) 활용 능력','IT 시스템 유지보수 능력','시스템 성능평가 분석 능력','기술 장단점 비교분석 능력'],A:['상호간에 검토하고 확인하는 노력','여러 관점에서 검토하고 확인하는 노력']}}
+};
+
+/* 1차(핵심 36개, 항목 6/6/3 + 능력단위 정의)가 2차(전체 270개, 항목 4/4/2)보다 상세하므로 우선 적용 */
+Object.keys(KSA2).forEach(s=>{KSA[s]=Object.assign({},KSA2[s],KSA[s]||{})});
+
+/* 직무별 핵심 능력단위 (1차 상세 수집분) */
+const CORE={'RA-MED-01':['01','05','08','10'],'RD-MED-01':['01','02','03','09'],'PR-FPCB-01':['01','02','05','09'],'QA-QMS-01':['07','08','10','16'],'SC-PUR-01':['01','04','05','09'],'SL-TEC-01':['03','04','05','09'],'ES-ENV-01':['01','02','03','06'],'MG-HR-01':['02','03','05','07'],'IT-AI-01':['01','04','06','08']};
+const KJOB={'RA-MED-01':'19030902','RD-MED-01':'19030904','PR-FPCB-01':'19020202','QA-QMS-01':'02040201',
+ 'SC-PUR-01':'02040101','SL-TEC-01':'10010101','ES-ENV-01':'23010201','MG-HR-01':'02020201','IT-AI-01':'20010703'};
+
+const EV={fact:['확인 사실','b-fact'],infer:['설계 추론','b-infer'],check:['사내 확인 필요','b-check'],mock:['가상 예시','b-mock']};
+const S={biz:'ALL',fam:null,job:null,lv:'L2',kind:'jd',ksaAll:false,sort:{k:'id',d:1}};
+const $=s=>document.querySelector(s), el=(t,c,h)=>{const n=document.createElement(t);if(c)n.className=c;if(h!=null)n.innerHTML=h;return n};
+const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const ph=t=>`<span class="ph">사내 확인 필요 · ${esc(t)}</span>`;
+const evb=k=>`<span class="b ${EV[k][1]}">${EV[k][0]}</span>`;
+
+/* ── Step 1 ── */
+function renderBiz(){
+  const w=$('#bizfilter');w.innerHTML='';
+  [['ALL','전체 사업영역'],...Object.entries(BIZ).map(([k,v])=>[k,v.n])].forEach(([k,n])=>{
+    const b=el('button','chip'+(S.biz===k?' on':''),esc(n));
+    b.setAttribute('aria-pressed',S.biz===k);
+    b.onclick=()=>{S.biz=k;if(S.fam&&!famJobsAll(S.fam).length)S.fam=null;renderBiz();renderFams();renderJobs()};
+    w.appendChild(b)});
+}
+
+const famJobsAll=f=>JOBS.filter(j=>j.fam===f&&(S.biz==='ALL'||j.biz===S.biz));
+function renderFams(){
+  const w=$('#fams');w.innerHTML='';
+  FAMS.forEach(f=>{
+    const n=famJobsAll(f.id).length;
+    const b=el('button','fam'+(S.fam===f.id?' on':''));
+    b.disabled=!n;b.style.opacity=n?1:.45;
+    b.innerHTML=`<div class="fam-top">
+        <span class="fam-ico" style="background:color-mix(in srgb,${f.c} 16%,transparent);color:${f.c}">${f.ic}</span>
+        <span><code>${f.id}</code><b>${esc(f.n)}</b></span></div>
+      <p>${esc(f.d)}</p>
+      <div class="foot"><span class="cnt">직무 ${n}건</span><span class="go">→</span></div>`;
+    b.onclick=()=>{S.fam=f.id;S.job=null;renderFams();renderJobs();renderAll();$('#s2').scrollIntoView({behavior:'smooth',block:'start'})};
+    w.appendChild(b)});
+}
+/* ── Step 2 ── */
+const COLS=[['id','직무 ID'],['n','직무명'],['biz','사업영역'],['ev','근거등급'],['ncs','NCS 매핑']];
+function renderJobs(){
+  const th=$('#jobs thead'),tb=$('#jobs tbody');
+  const fam=FAMS.find(f=>f.id===S.fam);
+  $('#s2lead').innerHTML=fam?`<b>${esc(fam.id)} ${esc(fam.n)}</b> 직군의 직무입니다. 열 제목을 눌러 정렬할 수 있습니다.`:'대분류를 먼저 선택하세요.';
+  th.innerHTML='<tr>'+COLS.map(([k,l])=>{
+    const a=S.sort.k===k;
+    return `<th><button data-s="${k}">${l}<span class="sort${a?' act':''}">${a?(S.sort.d>0?'▲':'▼'):'⇅'}</span></button></th>`
+  }).join('')+'<th></th></tr>';
+  th.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.s;S.sort=S.sort.k===k?{k,d:-S.sort.d}:{k,d:1};renderJobs()});
+  tb.innerHTML='';
+  if(!S.fam){tb.innerHTML='<tr><td colspan="6" class="empty">Step 1에서 대분류 직무구분을 선택하면 직무 목록이 표시됩니다.</td></tr>';return}
+  const rows=famJobsAll(S.fam).slice().sort((a,b)=>{
+    const f=(o,k)=>k==='biz'?BIZ[o.biz].n:k==='ev'?EV[o.ev][0]:k==='ncs'?MODE[jmap(o.id).m][0]:o[k];
+    const k=S.sort.k,x=f(a,k),y=f(b,k);
+    return String(x).localeCompare(String(y),'ko')*S.sort.d});
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">선택한 사업영역에 해당하는 직무가 없습니다.</td></tr>';return}
+  rows.forEach(j=>{
+    const tr=el('tr',S.job===j.id?'on':'');
+    tr.innerHTML=`<td class="jid">${j.id}</td><td class="jname">${esc(j.n)}</td>
+      <td><span class="b b-biz">${esc(BIZ[j.biz].n.split(' · ')[1]||BIZ[j.biz].n)}</span></td>
+      <td>${evb(j.ev)}</td><td><span class="b ${MODE[jmap(j.id).m][1]}">${MODE[jmap(j.id).m][0]}</span></td>
+      <td style="text-align:right"><span class="pick">템플릿 생성 →</span></td>`;
+    tr.onclick=()=>{S.job=j.id;renderJobs();renderAll();$('#s3').scrollIntoView({behavior:'smooth',block:'start'})};
+    tb.appendChild(tr)});
+}
+/* ── Step 3 ── */
+function renderLevels(){
+  const w=$('#levels');w.innerHTML='';
+  LV.forEach(l=>{
+    const b=el('button','lv'+(S.lv===l.k?' on':''));
+    b.innerHTML=`<span class="k">${l.k} · NCS 수준 ${l.ncs} (설계 가정)</span><b>${l.n}</b><small>${esc(l.d)}</small>`;
+    b.onclick=()=>{S.lv=l.k;renderLevels();renderAll()};
+    w.appendChild(b)});
+}
+function renderKind(){$('#kind').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.kind===S.kind))}
+</script>
+<script>
+
+/* ===== 교육체계 =====
+   유형: 전사 공통 / 직무 필수 / 직무 심화 / 직책·리더십 / OJT·현장평가 / 자격취득·갱신 / AX·데이터·보안 / 법정·규제 요구
+   법정 여부는 공식 자료로 확인하기 전까지 '적용 법령 확인 필요'로 둡니다. */
+const CT={CM:['전사 공통','var(--purple)'],JR:['직무 필수','var(--primary)'],JA:['직무 심화','var(--sky)'],
+ LD:['직책·리더십','var(--coral)'],OJ:['OJT·현장평가','var(--mint)'],CQ:['자격취득·갱신','var(--cyan)'],
+ AX:['AX·데이터·보안','var(--info)'],LG:['법정·규제 요구','var(--yellow)']};
+const LAW='적용 법령 확인 필요';
+/* [id,과정명,유형,대상직군(*=전사),적용레벨[min,max],시간,방식,평가방법,합격기준,인정기간(개월,0=무기한),근거,연계 NCS 능력단위] */
+const CRS=[
+['C-CM-01','신입 온보딩 · 회사와 사업 이해','CM','*',[1,1],8,'집합','과제','과제 제출',0,'사내 기준',[]],
+['C-CM-02','기업가치관 · 윤리경영','CM','*',[1,5],2,'온라인','서술형 시험','80점 이상',12,'사내 기준',[]],
+['C-CM-03','개인정보 보호','LG','*',[1,5],2,'온라인','서술형 시험','80점 이상',12,LAW,[]],
+['C-CM-04','산업안전보건 교육','LG','*',[1,5],6,'집합','관찰평가','이수',3,LAW,[]],
+['C-CM-05','정보보안 기본','AX','*',[1,5],3,'온라인','서술형 시험','80점 이상',12,'사내 기준',[]],
+['C-CM-06','데이터 활용 · AX 입문','AX','*',[2,5],6,'온라인','과제','과제 제출',0,'사내 기준',[]],
+['C-CM-07','비즈니스 문서 · 기획서 작성','CM','*',[2,4],8,'집합','과제','과제 통과',0,'사내 기준',[]],
+['C-OJ-01','직무 OJT · 독립수행 승인','OJ','*',[1,2],160,'OJT','관찰평가 + 실무평가','독립수행 승인',0,'사내 기준',[]],
+['C-LD-01','신임 팀장 리더십','LD','*',[4,5],16,'집합','과제','수료',0,'사내 기준',[]],
+['C-LD-02','평가자 교육','LD','*',[4,5],4,'집합','서술형 시험','80점 이상',12,'사내 기준',[]],
+
+['C-RD-01','의료기기 설계관리 · ISO 13485','JR','JF-RD',[2,5],8,'집합','서술형 시험','80점 이상',24,'사내 기준',['1903090402_21v2','1903090409_21v2']],
+['C-RD-02','위험관리 ISO 14971','JR','JF-RD',[2,5],8,'집합','작업형 평가','과제 통과',24,'사내 기준',['1903090403_21v2']],
+['C-RD-03','통계적 실험설계(DOE)','JA','JF-RD',[3,5],16,'집합','작업형 평가','80점 이상',0,'사내 기준',[]],
+['C-RD-04','연구노트 · 데이터 무결성','JR','JF-RD',[1,5],2,'온라인','서술형 시험','80점 이상',12,'사내 기준',[]],
+['C-RD-05','생물학적 안전성 평가 ISO 10993','JA','JF-RD',[3,5],8,'외부위탁','서술형 시험','80점 이상',0,'사내 기준',['1903090407_21v2']],
+
+['C-PR-01','제조공정 기본','JR','JF-PR',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['1902020205_16v3']],
+['C-PR-02','4M 변경관리 · 품질 기본','JR','JF-PR',[1,5],4,'집합','서술형 시험','80점 이상',24,'사내 기준',['0204010305_23v3']],
+['C-PR-03','화학물질 안전 · MSDS','LG','JF-PR',[1,5],4,'집합','서술형 시험','80점 이상',12,LAW,[]],
+['C-PR-04','SPC 심화 · 공정능력 해석','JA','JF-PR',[3,5],16,'집합','작업형 평가','80점 이상',0,'사내 기준',['0204010306_23v3']],
+['C-PR-05','사출성형 조건 설정 실무','JA','JF-PR',[2,4],16,'OJT','작업형 평가','작업 합격',0,'사내 기준',['1704010504_22v4','1704010509_22v4']],
+
+['C-QA-01','품질경영시스템 기본','JR','JF-QA',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['0204020110_16v2']],
+['C-QA-02','내부심사원 양성과정','CQ','JF-QA',[2,5],16,'외부위탁','서술형 + 실습','80점 이상',36,'사내 기준',['0204020116_16v1','1903090103_21v2']],
+['C-QA-03','근본원인분석(RCA) 심화','JA','JF-QA',[3,5],8,'집합','작업형 평가','과제 통과',0,'사내 기준',['1903090110_21v2']],
+['C-QA-04','ISO 13485 심화','JA','JF-QA',[3,5],8,'외부위탁','서술형 시험','80점 이상',24,'사내 기준',['1903090101_21v2']],
+
+['C-SC-01','구매 실무 기본','JR','JF-SC',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['0204010104_23v3']],
+['C-SC-02','윤리경영 · 공정거래','LG','JF-SC',[1,5],2,'온라인','서술형 시험','80점 이상',12,LAW,[]],
+['C-SC-03','협상 전략 · 원가 분석','JA','JF-SC',[3,5],16,'집합','작업형 평가','과제 통과',0,'사내 기준',['0204010107_23v3','0204010109_23v3']],
+['C-SC-04','수출입 · FTA 원산지 실무','JA','JF-SC',[2,5],8,'외부위탁','서술형 시험','80점 이상',0,'사내 기준',['0204030210_24v3']],
+
+['C-SL-01','제품 기본교육(필터 · 멤브레인 · 의료기기)','JR','JF-SL',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',[]],
+['C-SL-02','기술 제안서 · 프레젠테이션','JA','JF-SL',[2,5],8,'집합','작업형 평가','발표 평가 통과',0,'사내 기준',['1001010105_20v2']],
+['C-SL-03','계약 실무 · 클레임 대응','JA','JF-SL',[3,5],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['1001010106_20v2','1001010209_14v1']],
+
+['C-RA-01','의료기기 인허가 기본','JR','JF-RA',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['1903090201_21v2','1903090202_21v2']],
+['C-RA-02','CE MDR 기술문서 작성','JA','JF-RA',[3,5],16,'외부위탁','작업형 평가','문서 평가 통과',24,'사내 기준',['1903090205_21v2']],
+['C-RA-03','임상평가 · CER 작성','JA','JF-RA',[3,5],16,'외부위탁','작업형 평가','문서 평가 통과',24,'사내 기준',['1903090211_21v1','1903090203_21v2']],
+['C-RA-04','규제 동향 모니터링 · 사후관리','JR','JF-RA',[2,5],2,'온라인','과제','보고서 제출',12,'사내 기준',['1903090210_21v2']],
+
+['C-ES-01','환경기술인 법정교육','LG','JF-ES',[1,5],16,'외부위탁','서술형 시험','이수',36,LAW,['2301020101_21v3']],
+['C-ES-02','전기안전관리자 법정교육','LG','JF-ES',[1,5],16,'외부위탁','서술형 시험','이수',36,LAW,['2306010214_21v3']],
+['C-ES-03','위험성평가 실무','JR','JF-ES',[2,5],8,'집합','작업형 평가','과제 통과',24,'사내 기준',['2306020105_23v4']],
+['C-ES-04','방지시설 운영 심화','JA','JF-ES',[3,5],16,'외부위탁','작업형 평가','80점 이상',0,'사내 기준',['2301020106_21v3']],
+
+['C-MG-01','인사 실무 기본','JR','JF-MG',[1,3],8,'집합','서술형 시험','80점 이상',0,'사내 기준',['0202020101_23v3','0202020103_23v4']],
+['C-MG-02','직무분석 · 직무평가 실무','JA','JF-MG',[3,5],16,'외부위탁','작업형 평가','과제 통과',0,'사내 기준',['0202020102_23v3']],
+['C-MG-03','NCS 기반 교육체계 설계','JA','JF-MG',[3,5],16,'외부위탁','작업형 평가','과제 통과',0,'사내 기준',['0202020107_23v4']],
+['C-MG-04','노동법 심화','JA','JF-MG',[3,5],8,'외부위탁','서술형 시험','80점 이상',24,'사내 기준',[]],
+
+['C-IT-01','데이터 분석 기본','JR','JF-IT',[1,3],16,'온라인','작업형 평가','80점 이상',0,'사내 기준',['2001010516_21v1']],
+['C-IT-02','머신러닝 · 모델링 실무','JA','JF-IT',[3,5],24,'집합','작업형 평가','과제 통과',0,'사내 기준',['2001070306_23v2','2001070307_23v2']],
+['C-IT-03','AI 윤리 · 리스크 관리','JA','JF-IT',[2,5],4,'온라인','서술형 시험','80점 이상',12,'사내 기준',['2001070308_23v2']],
+['C-IT-04','정보보호 운영 실무','JR','JF-IT',[2,5],16,'집합','작업형 평가','80점 이상',24,'사내 기준',['2001060110_19v3','2001060111_19v3']]
+];
+const C=r=>({id:r[0],n:r[1],t:r[2],f:r[3],lv:r[4],h:r[5],md:r[6],ev:r[7],pass:r[8],vd:r[9],basis:r[10],ncs:r[11]});
+const crsFor=j=>CRS.map(C).filter(c=>c.f==='*'||c.f===j.fam);
+const inLv=(c,n)=>n>=c.lv[0]&&n<=c.lv[1];
+const lvNum=k=>+k.slice(1);
+const lvPills=c=>`<span class="lvpills">${LV.map(l=>{const n=lvNum(l.k);
+  return `<span class="lvp${inLv(c,n)?(l.k===S.lv?' cur':' in'):''}">${n}</span>`}).join('')}</span>`;
+const ctb=t=>`<span class="ctype" style="background:${CT[t][1]}"></span>${CT[t][0]}`;
+
+function renderEdu(){
+  const o=$('#eduOut');
+  if(!S.job){o.innerHTML='<div class="note">Step 2에서 직무를 선택하면 교육체계가 생성됩니다.</div>';$('#s6lead').textContent='직무를 선택하면 해당 직무에 배정되는 교육과정과 레벨별 로드맵이 생성됩니다.';return}
+  const j=JOBS.find(x=>x.id===S.job), cs=crsFor(j), cur=lvNum(S.lv);
+  const now=cs.filter(c=>inLv(c,cur));
+  const hrs=now.reduce((a,c)=>a+c.h,0);
+  $('#s6lead').innerHTML=`<b>${esc(j.n)}</b> 직무에 배정되는 교육과정은 전체 ${cs.length}개이며, 현재 선택한 <b>${S.lv}</b> 레벨에는 ${now.length}개 과정 ${hrs}시간이 적용됩니다.`;
+  const byT={};cs.forEach(c=>(byT[c.t]=byT[c.t]||[]).push(c));
+  const kpi=`<div class="kpi-row">
+    <div class="kpi"><div class="v">${cs.length}</div><div class="l">배정 과정 (전 레벨)</div></div>
+    <div class="kpi"><div class="v">${now.length}</div><div class="l">${S.lv} 적용 과정</div></div>
+    <div class="kpi"><div class="v">${hrs}h</div><div class="l">${S.lv} 총 교육시간</div></div>
+    <div class="kpi"><div class="v">${cs.filter(c=>c.t==='LG').length}</div><div class="l">법정·규제 요구 (근거 확인 필요)</div></div>
+    <div class="kpi"><div class="v">${cs.filter(c=>c.vd>0).length}</div><div class="l">유효기간 있는 과정</div></div></div>`;
+  const legend=`<div class="legend" style="margin:16px 0 10px">${Object.keys(CT).map(t=>`<span>${ctb(t)}</span>`).join('')}</div>`;
+  const rows=cs.map(c=>`<tr>
+      <td class="cid">${c.id}</td>
+      <td><b style="color:var(--text-main)">${esc(c.n)}</b></td>
+      <td style="white-space:nowrap">${ctb(c.t)}</td>
+      <td>${lvPills(c)}</td>
+      <td style="white-space:nowrap">${c.md} · ${c.h}h</td>
+      <td>${esc(c.ev)}<br><span style="color:var(--text-muted)">${esc(c.pass)}</span></td>
+      <td style="white-space:nowrap">${c.vd?c.vd+'개월':'무기한'}</td>
+      <td>${c.basis===LAW?`<span class="ph">${LAW}</span>`:c.basis}</td>
+      <td style="font-family:var(--font-mono);font-size:.6875rem;color:var(--text-muted)">${c.ncs.length?c.ncs.join('<br>'):'—'}</td>
+    </tr>`).join('');
+  const table=`<div class="tw"><table class="data" style="min-width:1000px"><thead><tr>
+      <th>과정 ID</th><th>과정명</th><th>유형</th><th>적용 레벨</th><th>방식 · 시간</th><th>평가 · 합격기준</th><th>인정기간</th><th>근거</th><th>연계 NCS 능력단위</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+  const road=`<div class="tw2"><table class="mtx"><thead><tr><th>교육 유형</th>${LV.map(l=>`<th${l.k===S.lv?' style="background:var(--primary);color:#fff"':''}>${l.k} ${l.n}</th>`).join('')}</tr></thead><tbody>`+
+    Object.keys(CT).filter(t=>byT[t]).map(t=>`<tr><td>${ctb(t)}</td>`+
+      LV.map(l=>{const n=lvNum(l.k),hit=byT[t].filter(c=>inLv(c,n));
+        return `<td>${hit.length?hit.map(c=>`<span class="cid">${c.id}</span>`).join('<br>'):'<span style="color:var(--text-muted)">·</span>'}</td>`}).join('')+'</tr>').join('')+
+    '</tbody></table></div>';
+  o.innerHTML=kpi+
+    `<h3 style="margin:22px 0 4px;font-size:1rem">레벨별 교육 로드맵</h3>
+     <p style="font-size:.8125rem;color:var(--text-muted);margin:0 0 12px">레벨이 올라가면 이전 레벨 과정이 사라지는 것이 아니라, 유효기간이 있는 과정은 갱신 대상으로 유지됩니다.</p>`+road+
+    `<h3 style="margin:26px 0 0;font-size:1rem">교육과정 상세</h3>`+legend+table+
+    `<div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="csv">교육과정 CSV 복사</button></div>
+     <p class="hint">수강 · 수료 · 평가합격 · 자격취득 · 독립수행 승인은 서로 다른 상태로 관리합니다. 교육 수료만으로 실무역량 충족을 판정하지 않습니다.
+     법정·규제 요구 과정은 적용 법령 · 대상 · 주기 · 예외를 공식 자료로 확인하기 전까지 법정 필수로 확정하지 않습니다.</p>`;
+  const b=$('#csv'); if(b) b.onclick=()=>copy(eduCsv(j),'교육과정 CSV를 복사했습니다');
+}
+function eduCsv(j){
+  const h=['과정ID','과정명','유형','대상직군','적용레벨','시간','방식','평가방법','합격기준','인정기간(개월)','근거','연계NCS능력단위'];
+  const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+  return [h.map(q).join(',')].concat(crsFor(j).map(c=>[c.id,c.n,CT[c.t][0],c.f==='*'?'전사':c.f,`L${c.lv[0]}~L${c.lv[1]}`,c.h,c.md,c.ev,c.pass,c.vd||'무기한',c.basis,c.ncs.join(' ')].map(q).join(','))).join('\n');
+}
+
+/* ===== 이력관리 (가상 예시 데이터) ===== */
+const SITES=['동탄사업장','방교사업장','천안사업장','김천사업장','대구(멤브레인)','서울사무소'];
+const ST={na:['해당 없음','b-biz'],as:['배정',"b-check"],ing:['수강중','b-ing'],done:['수료','b-infer'],
+  pass:['평가합격','b-fact'],exp:['만료 예정','b-check'],over:['기한 초과','b-dang']};
+const hsh=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0};
+function roster(j){
+  return [1,2,2,3,4].map((lv,i)=>({c:'E-0'+(i+1),lv,site:SITES[hsh(j.id+i)%SITES.length],
+    since:`202${3+(hsh(j.id+'y'+i)%3)}-0${1+(hsh(j.id+'m'+i)%9)}-01`}));
+}
+function stat(j,e,c){
+  if(!inLv(c,e.lv))return 'na';
+  const r=hsh(j.id+e.c+c.id)%100, bonus=e.lv*7;
+  if(r<7)return 'over';
+  if(r<18)return 'as';
+  if(r<30)return 'ing';
+  if(c.vd>0&&r%11===0)return 'exp';
+  return (r+bonus)<66?'done':'pass';
+}
+function renderHist(){
+  const o=$('#histOut');
+  if(!S.job){o.innerHTML='<div class="note">Step 2에서 직무를 선택하면 해당 직무 배치 인원의 교육 · 자격 이력이 생성됩니다.</div>';return}
+  const j=JOBS.find(x=>x.id===S.job), cs=crsFor(j), em=roster(j);
+  const cells=[];
+  em.forEach(e=>cs.forEach(c=>cells.push({e,c,s:stat(j,e,c)})));
+  const req=cells.filter(x=>x.s!=='na'&&(x.c.t==='JR'||x.c.t==='LG'||x.c.t==='OJ'));
+  const onTime=req.filter(x=>x.s==='done'||x.s==='pass').length;
+  const qualAll=cells.filter(x=>x.s!=='na'&&x.c.vd>0);
+  const qualOk=qualAll.filter(x=>x.s==='done'||x.s==='pass').length;
+  const ojt=em.filter(e=>cs.some(c=>c.t==='OJ'&&stat(j,e,c)==='pass'));
+  const gap=cells.filter(x=>x.s==='as'||x.s==='ing'||x.s==='over').length;
+  const over=cells.filter(x=>x.s==='over'), expS=cells.filter(x=>x.s==='exp');
+  const pct=(a,b)=>b===0?null:Math.round(a/b*100);
+  const kcard=(v,l,sub)=>`<div class="kpi"><div class="v">${v===null?'해당 없음':v+'%'}</div><div class="l">${l}</div>
+    ${v===null?'':`<div class="bar"><i style="width:${v}%"></i></div>`}<div class="l" style="margin-top:5px">${sub}</div></div>`;
+  const kpi=`<div class="kpi-row">
+    ${kcard(pct(onTime,req.length),'필수교육 수료율',`분자 ${onTime} / 분모 ${req.length} · 해당 없음 제외`)}
+    ${kcard(pct(qualOk,qualAll.length),'유효 자격·갱신 보유율',`분자 ${qualOk} / 분모 ${qualAll.length} · 유효기간 과정 한정`)}
+    ${kcard(pct(ojt.length,em.length),'독립수행 승인율',`분자 ${ojt.length} / 분모 ${em.length}명`)}
+    <div class="kpi"><div class="v">${gap}</div><div class="l">역량 Gap 건수</div><div class="l" style="margin-top:5px">미수료 · 수강중 · 기한초과 합계</div></div>
+    <div class="kpi"><div class="v">${cells.filter(x=>x.s==='na').length}</div><div class="l">해당 없음</div><div class="l" style="margin-top:5px">레벨 적용 범위 밖 · 분모에서 제외</div></div>
+  </div>`;
+  const alerts=(over.length?`<div class="alert dang"><b>기한 초과 ${over.length}건</b> · ${over.slice(0,3).map(x=>x.e.c+' / '+x.c.id).join(', ')}${over.length>3?' 외 '+(over.length-3)+'건':''}</div>`:'')
+    +(expS.length?`<div class="alert" style="margin-top:9px"><b>자격 · 교육 만료 예정 ${expS.length}건</b> · ${expS.slice(0,3).map(x=>x.e.c+' / '+x.c.id).join(', ')}${expS.length>3?' 외 '+(expS.length-3)+'건':''}</div>`:'');
+  const head=`<tr><th>직원 (가상)</th>${cs.map(c=>`<th title="${esc(c.n)}"><span class="cid">${c.id}</span></th>`).join('')}</tr>`;
+  const body=em.map(e=>`<tr><td><div class="emp"><span class="av">${e.c.slice(-2)}</span>
+      <span><b>${e.c} · L${e.lv} ${LV[e.lv-1].n}</b><small>${e.site} · 배치 ${e.since}</small></span></div></td>`+
+    cs.map(c=>{const st=stat(j,e,c);return `<td><span class="b ${ST[st][1]}">${ST[st][0]}</span></td>`}).join('')+'</tr>').join('');
+  const legend=`<div class="legend" style="margin:14px 0 10px">${Object.keys(ST).map(k=>`<span class="b ${ST[k][1]}">${ST[k][0]}</span>`).join('')}</div>`;
+  const gaps=em.map(e=>{
+    const mine=cs.filter(c=>inLv(c,e.lv)), ok=mine.filter(c=>['done','pass'].includes(stat(j,e,c))).length;
+    const tgt=LV[Math.min(e.lv,4)];
+    return `<tr><td>${e.c}</td><td>L${e.lv} ${LV[e.lv-1].n}</td><td>${e.lv>=5?'—':'L'+(e.lv+1)+' '+tgt.n}</td>
+      <td>${ok} / ${mine.length}</td><td>${mine.length-ok}건</td>
+      <td>${mine.filter(c=>stat(j,e,c)==='as').map(c=>c.id).join(', ')||'—'}</td></tr>`}).join('');
+  o.innerHTML=kpi+(alerts?`<div style="margin:16px 0">${alerts}</div>`:'')+
+    `<h3 style="margin:22px 0 0;font-size:1rem">교육 · 자격 이력 매트릭스</h3>`+legend+
+    `<div class="tw"><table class="mtx" style="min-width:${260+cs.length*86}px"><thead>${head}</thead><tbody>${body}</tbody></table></div>`+
+    `<h3 style="margin:26px 0 10px;font-size:1rem">역량 Gap 및 개인별 개발계획</h3>
+     <div class="tw2"><table class="mini"><thead><tr><th>직원</th><th>현재 수준</th><th>차상위 목표</th><th>이수 / 적용</th><th>부족 항목</th><th>우선 배정 과정</th></tr></thead><tbody>${gaps}</tbody></table></div>`+
+    `<p class="hint">계산 규칙 · 분모에서 '해당 없음'을 제외하며, 분모가 0이면 비율 대신 '해당 없음'으로 표시합니다. 미평가를 0점으로 처리하지 않습니다.
+     교육 수료(수료)와 평가 통과(평가합격)를 구분하며, 독립수행 승인은 OJT 실무평가 통과자에게만 부여합니다.
+     규칙 개정 시 과거 교육결과를 덮어쓰지 않고 배정 당시의 근거와 기한을 보존합니다.</p>`;
+}
+
+/* ── Step 4: 표준 Template 렌더 ── */
+function head(j,kindName,kindEn){
+  const fam=FAMS.find(f=>f.id===j.fam),lv=LV.find(l=>l.k===S.lv);
+  return `<div class="doc-head">
+    <span class="kind">${kindEn}</span>
+    <h3>${esc(j.n)} <span style="color:var(--text-muted);font-weight:500">· ${lv.k} ${lv.n}</span></h3>
+    <div>${evb(j.ev)} <span class="b b-biz">${esc(BIZ[j.biz].n)}</span></div>
+    <dl class="meta">
+      <div><dt>직무 ID</dt><dd style="font-family:var(--font-mono)">${j.id}</dd></div>
+      <div><dt>직군 (대분류)</dt><dd>${fam.id} ${esc(fam.n)}</dd></div>
+      <div><dt>소속 조직 후보</dt><dd>${j.org==='사내 확인 필요'?ph('조직명'):esc(j.org)}</dd></div>
+      <div><dt>숙련수준</dt><dd>${lv.k} ${lv.n} · NCS 수준 ${lv.ncs} (설계 가정)</dd></div>
+      <div><dt>문서 버전</dt><dd>v0.1 (초안) · 2026-10-05 KST</dd></div>
+      <div><dt>작성 · 검토 · 승인</dt><dd>${ph('승인 책임 역할')}</dd></div>
+    </dl></div>`;
+}
+const fld=(no,t,body)=>`<section class="fld"><h4><span class="no">${no}</span>${t}</h4>${body}</section>`;
+const ul=a=>a&&a.length?`<ul class="list">${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:null;
+
+function lvTable(j){
+  return `<div class="tw2"><table class="mini"><thead><tr><th style="width:84px">레벨</th><th style="width:110px">구분</th><th>수행기준</th></tr></thead><tbody>`+
+    LV.map(l=>`<tr class="${l.k===S.lv?'hl':''}"><td style="font-family:var(--font-mono)">${l.k}</td><td>${l.n}</td>
+      <td>${esc((j.lv&&j.lv[l.k])||LVG[l.k])}</td></tr>`).join('')+'</tbody></table></div>';
+}
+function renderJD(j){
+  const d=[];
+  d.push(fld('01','직무 정의 (목적)',j.def?`<p>${esc(j.def)}</p>`:`<p>${ph('직무 목적 · 현업 인터뷰 후 확정')}</p>`));
+  d.push(fld('02','주요 책무 · 활동 · 빈도',j.duties?
+    `<div class="tw2"><table class="mini"><thead><tr><th>책무 / 활동</th><th style="width:74px">빈도</th><th style="width:34%">산출물</th></tr></thead><tbody>`+
+    j.duties.map(([t,f,o])=>`<tr><td>${esc(t)}</td><td>${esc(f)}</td><td>${esc(o)}</td></tr>`).join('')+'</tbody></table></div>'
+    :`<p>${ph('주요 책무 3~7개 · 행동 중심 동사로 작성')}</p>`));
+  d.push(fld('03','입력자료 · 산출물',ul(j.inputs)||`<p>${ph('업무 입력자료와 산출물')}</p>`));
+  d.push(fld('04','사용 시스템 · 도구 · 설비',ul(j.tools)||`<p>${ph('사용 시스템·설비 목록')}</p>`));
+  d.push(fld('05','KPI 및 품질기준',j.kpis?
+    `<div class="kpi-row">${j.kpis.map(([n,u])=>`<div class="kpi"><div class="v">${esc(u)}</div><div class="l">${esc(n)}</div></div>`).join('')}</div>
+     <p class="hint">각 KPI는 정의 · 분자 · 분모 · 기간 · 데이터 출처를 확정한 뒤 목표값을 설정합니다. 목표값은 ${ph('회사 목표 확인')}</p>`
+    :`<p>${ph('KPI 및 품질기준')}</p>`));
+  d.push(fld('06','업무 위험과 통제',ul(j.risks)||`<p>${ph('업무 위험과 통제수단')}</p>`));
+  d.push(fld('07','RACI · 협업 관계',j.raci?`<p>${esc(j.raci)}</p>`:`<p>${ph('RACI 및 보고 관계')}</p>`));
+  d.push(fld('08','레벨별(숙련단계별) 수행기준',lvTable(j)));
+  d.push(fld('09','SOP · 업무규칙',`<p>${ph('적용 SOP 문서번호 및 업무규칙')}</p>`));
+  d.push(fld('10','OJT · 실무평가 · 독립수행 승인기준',
+    `<div class="tw2"><table class="mini"><thead><tr><th style="width:120px">단계</th><th>기준</th></tr></thead><tbody>
+      <tr><td>OJT 기간</td><td>${ph('기간 및 지도자 지정')}</td></tr>
+      <tr><td>실무평가</td><td>관찰 가능한 수행기준에 따라 평가자가 판정. 평가도구 · 평가자 · 평가일 · 증빙 · 재평가일을 기록합니다.</td></tr>
+      <tr><td>독립수행 승인</td><td>교육 수료만으로 승인하지 않습니다. 실무평가 통과 후 ${ph('승인 권한자')}가 승인합니다.</td></tr>
+    </tbody></table></div>`));
+  d.push(`<div class="note"><b>작성 규칙</b> · 사람이 아니라 일을 기준으로 작성합니다. 현재 담당자의 개인 역량을 요건에 넣지 않습니다.
+    모호한 표현 대신 구체적 행동과 범위를 적고, 최소 연 1회 갱신합니다.</div>`);
+  return head(j,'직무기술서','JOB DESCRIPTION · 직무기술서')+`<div class="doc-body">${d.join('')}</div>`;
+}
+function toggleKsa(){S.ksaAll=!S.ksaAll;renderDoc()}
+function ksaTable(j){
+  const subs=(jmap(j.id).c||[]).filter(c=>KSA[c]);
+  const own=[['K · 지식',j.K],['S · 기술',j.S],['A · 태도',j.A]];
+  const lvl=['L1','L2'].includes(S.lv)?'기본 이해':S.lv==='L3'?'단독 적용':'표준 수립 · 지도';
+  const ownBlock=()=>(j.K||j.S||j.A)?`<p style="margin:18px 0 6px;font-size:.8125rem;font-weight:700;color:var(--text-main)">기업 고유 역량 (직무조사 기반 · NCS 미대응분)</p>
+     <div class="tw2"><table class="mini"><thead><tr><th style="width:84px">구분</th><th>항목</th></tr></thead><tbody>`+
+     own.map(([t,a])=>(a||[]).map((x,i)=>`<tr><td>${i===0?t:''}</td><td>${esc(x)}</td></tr>`).join('')).join('')+'</tbody></table></div>':'';
+  if(!subs.length){
+    if(!j.K&&!j.S&&!j.A)return `<p>${ph('K·S·A 도출 · 능력단위 수행준거 분석 후 작성')}</p>`;
+    return `<div class="tw2"><table class="mini"><thead><tr><th style="width:92px">구분</th><th>항목</th><th style="width:124px">${S.lv} 요구수준</th></tr></thead><tbody>`+
+      own.map(([t,a])=>(a||[]).map((x,i)=>`<tr><td>${i===0?t:''}</td><td>${esc(x)}</td><td>${lvl}</td></tr>`).join('')).join('')+
+      `</tbody></table></div><p class="hint">이 직무는 NCS 연계 세분류가 없어 직무조사 기반 K·S·A입니다.</p>`;
+  }
+  const core=KJOB[j.id]&&KSA[KJOB[j.id]]?{sub:KJOB[j.id],cds:['01','02','03','04','05','06','07','08','09','10','11','16'].filter(c=>CORE[j.id]&&CORE[j.id].includes(c))}:null;
+  const coreSet=CORE[j.id]||null;
+  const useAll=S.ksaAll||!coreSet;
+  const picked=[];
+  subs.forEach(sub=>Object.keys(KSA[sub]).sort().forEach(cd=>{
+    if(!useAll&&!(sub===KJOB[j.id]&&coreSet.includes(cd)))return;
+    picked.push([sub,cd,KSA[sub][cd]]);
+  }));
+  const full=(sub,cd)=>{const d=NCS[sub]; const u=d&&d.u.find(x=>x[0].startsWith(sub+cd)); return u?u:[sub+cd,'',null]};
+  const agg={K:new Map(),S:new Map(),A:new Map()};
+  picked.forEach(([sub,cd,v])=>['K','S','A'].forEach(t=>(v[t]||[]).forEach(x=>{
+    if(!agg[t].has(x))agg[t].set(x,[]); agg[t].get(x).push(full(sub,cd)[0])})));
+  const rows=t=>[...agg[t].entries()].map(([x,cds],i)=>`<tr><td>${i===0?({K:'K · 지식',S:'S · 기술',A:'A · 태도'})[t]:''}</td>
+     <td>${esc(x)}</td><td style="font-family:var(--font-mono);font-size:.6875rem;color:var(--text-muted)">${[...new Set(cds)].join('<br>')}</td>
+     <td>${lvl}</td></tr>`).join('');
+  const units=`<div class="tw2"><table class="mini"><thead><tr><th style="width:168px">분류번호</th><th>능력단위</th><th style="width:56px">수준</th><th>능력단위 정의 (NCS 원문)</th></tr></thead><tbody>`+
+    picked.map(([sub,cd,v])=>{const [fc,nm,lv]=full(sub,cd);
+      return `<tr><td style="font-family:var(--font-mono);font-size:.75rem">${fc}</td><td>${esc(nm)}</td>
+        <td><b style="color:var(--primary)">${lv||'-'}</b></td><td style="font-size:.75rem">${v.d?esc(v.d):'<span style="color:var(--text-muted)">정의 생략 (2차 수집분)</span>'}</td></tr>`}).join('')+'</tbody></table></div>';
+  const tot=subs.reduce((a,c)=>a+Object.keys(KSA[c]).length,0);
+  const toggle=coreSet?`<button class="btn ghost" onclick="toggleKsa()" style="margin-left:auto">${useAll?'핵심 능력단위만 보기':'전체 '+tot+'개 능력단위 보기'}</button>`:'';
+  return `<div class="note" style="margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="flex:1 1 320px;min-width:0"><b>자동 생성</b> · 아래 K·S·A는 NCS 능력단위 ${picked.length}개${coreSet&&!useAll?` (핵심 선정분 / 전체 ${tot}개)`:''}의
+      <b>수행준거 원문</b>에 수록된 【지식】【기술】【태도】를 그대로 가져와 중복을 제거한 결과입니다. 임의 작성 항목이 없으며 각 항목의 출처 능력단위를 함께 표기합니다.</span>${toggle}</div>`
+    + `<p style="margin:0 0 6px;font-size:.8125rem;font-weight:700;color:var(--text-main)">근거 능력단위 ${picked.length}개</p>` + units
+    + `<p style="margin:16px 0 6px;font-size:.8125rem;font-weight:700;color:var(--text-main)">NCS 원문 기반 K·S·A (지식 ${agg.K.size} · 기술 ${agg.S.size} · 태도 ${agg.A.size})</p>`
+    + `<div class="tw2"><table class="mini"><thead><tr><th style="width:84px">구분</th><th>항목 (NCS 원문)</th><th style="width:150px">출처 능력단위</th><th style="width:104px">${S.lv} 요구수준</th></tr></thead><tbody>${rows('K')}${rows('S')}${rows('A')}</tbody></table></div>`
+    + ownBlock()
+    + `<p class="hint">출처 · NCS 국가직무능력표준 포털 능력단위 상세(수행준거) 원문, 2026-10-06 KST 확인. 연계 세분류 ${subs.length}개 · 능력단위 ${tot}개 전수 수집. 선정·해석의 타당성은 사내 직무전문가(SME) 검토가 필요합니다.</p>`;
+}
+function ncsBlock(j){
+  const mp=jmap(j.id), md=MODE[mp.m];
+  const rows=(mp.c||[]).map(c=>{const d=NCS[c];return `<tr><td style="font-family:var(--font-mono);white-space:nowrap">${c}</td><td>${esc(d.n)}</td><td style="font-size:.75rem;color:var(--text-muted)">${esc(d.p)}</td></tr>`}).join('');
+  const rng=LV.find(l=>l.k===S.lv).ncs.split('~').map(Number);
+  const inR=lv=>lv>=rng[0]&&lv<=rng[1];
+  let units='', hit=0, all=0;
+  (mp.c||[]).forEach(c=>{const d=NCS[c];
+    const dist={}; d.u.forEach(([,,lv])=>dist[lv]=(dist[lv]||0)+1);
+    all+=d.u.length; hit+=d.u.filter(([,,lv])=>inR(lv)).length;
+    units+=`<p style="margin:14px 0 6px;font-size:.8125rem;font-weight:700;color:var(--text-main)">${c} ${esc(d.n)} · 능력단위 ${d.u.length}개
+      <span style="font-weight:500;color:var(--text-muted)">· 수준 분포 ${Object.keys(dist).sort().map(k=>`Lv${k} ${dist[k]}개`).join(' / ')}</span></p>
+      <div class="tw2"><table class="mini"><thead><tr><th style="width:168px">분류번호</th><th>능력단위명</th><th style="width:132px">NCS 수준</th></tr></thead><tbody>`+
+      d.u.map(([k,n,lv])=>`<tr class="${inR(lv)?'hl':''}"><td style="font-family:var(--font-mono);font-size:.75rem">${k}</td><td>${esc(n)}</td>
+        <td>${lv?`<b style="color:var(--primary)">${lv}</b>${inR(lv)?' <span style="font-size:.6875rem;color:var(--text-muted)">· '+S.lv+' 참고범위</span>':''}`:'<span class="ph">미확인</span>'}</td></tr>`).join('')+'</tbody></table></div>';
+  });
+  if(all)units=`<div class="note" style="margin:14px 0 0">선택한 <b>${S.lv}</b>의 NCS 수준 참고범위는 <b>${rng[0]}~${rng[1]}</b>이며, 연계 능력단위 ${all}개 중 <b>${hit}개</b>가 이 범위에 듭니다.
+    이 대응은 교육 설계용 <b>참고 가정</b>이며, NCS 수준을 사내 직급이나 숙련수준과 동일시하지 않습니다.</div>`+units;
+  return `<div class="tw2"><table class="mini"><thead><tr><th style="width:124px">항목</th><th>값</th></tr></thead><tbody>
+      <tr><td>대응 방식</td><td><span class="b ${md[1]}">${md[0]}</span></td></tr>
+      <tr><td>출처 / 확인일</td><td>NCS 국가직무능력표준 포털 (ncs.go.kr) · 2026-10-05~06 KST · 능력단위 수준 전수 확인</td></tr>
+      ${mp.note?`<tr><td>비고</td><td>${esc(mp.note)}</td></tr>`:''}
+    </tbody></table></div>`
+    + (rows?`<p style="margin:12px 0 6px;font-size:.8125rem;font-weight:700;color:var(--text-main)">연계 NCS 세분류</p>
+       <div class="tw2"><table class="mini"><thead><tr><th style="width:96px">분류코드</th><th style="width:30%">세분류</th><th>분류 경로</th></tr></thead><tbody>${rows}</tbody></table></div>`:'')
+    + units
+    + `<p class="hint">직무 하나를 NCS 세분류 하나에 억지로 맞추지 않습니다. 분류번호 · 능력단위명 · 수준은 모두 NCS 포털 조회값이며 추측으로 생성한 값이 없습니다. NCS 수준과 사내 직급을 자동으로 동일시하지 않습니다.</p>`;
+}
+
+
+function eduPath(j){
+  const cur=lvNum(S.lv), cs=crsFor(j).filter(c=>inLv(c,cur));
+  const grp=t=>cs.filter(c=>c.t===t);
+  const line=a=>a.length?a.map(c=>`<span class="cid">${c.id}</span> ${esc(c.n)}${c.vd?` <span style="color:var(--text-muted)">(${c.vd}개월 갱신)</span>`:''}`).join('<br>'):'<span style="color:var(--text-muted)">해당 없음</span>';
+  const law=grp('LG');
+  return `<div class="tw2"><table class="mini"><thead><tr><th style="width:124px">구분</th><th>${S.lv} 적용 과정</th></tr></thead><tbody>
+      <tr><td>직무 필수</td><td>${line(grp('JR'))}</td></tr>
+      <tr><td>직무 심화</td><td>${line(grp('JA'))}</td></tr>
+      <tr><td>전사 공통</td><td>${line(grp('CM'))}</td></tr>
+      <tr><td>OJT · 현장평가</td><td>${line(grp('OJ'))}</td></tr>
+      <tr><td>자격취득 · 갱신</td><td>${line(grp('CQ'))}</td></tr>
+      <tr><td>AX · 데이터 · 보안</td><td>${line(grp('AX'))}</td></tr>
+      <tr><td>직책 · 리더십</td><td>${line(grp('LD'))}</td></tr>
+      <tr><td>법정 · 규제 요구</td><td>${line(law)}${law.length?`<br><span class="ph">${LAW}</span> — 공식 자료 확인 전에는 법정 필수로 확정하지 않습니다.`:''}</td></tr>
+    </tbody></table></div>`
+    + (j.edu?`<p class="hint">직무 조사 단계의 교육 요구 기술 · 필수 ${j.edu.req.map(esc).join(' · ')} / 심화 ${j.edu.deep.map(esc).join(' · ')}</p>`:'');
+}
+
+function renderJS(j){
+  const d=[];
+  d.push(fld('01','요구 역량 요약',j.def?
+    `<p>${esc(j.def)}</p><p class="hint">직무명세서는 이 목적을 달성하기 위해 <b>사람</b>에게 요구되는 조건을 정의합니다.</p>`
+    :`<p>${ph('직무 목적 확정 후 작성')}</p>`));
+  d.push(fld('02','지식 · 기술 · 태도 (K·S·A)',ksaTable(j)));
+  d.push(fld('03','학력 · 경력 요건',
+    `<div class="tw2"><table class="mini"><thead><tr><th style="width:92px">구분</th><th>요건</th><th style="width:38%">설정 근거</th></tr></thead><tbody>
+      <tr><td>학력</td><td>${ph('학력 요건')}</td><td>관행적으로 추가하지 않습니다. 직무 수행에 실제로 필요한 경우에만 기재합니다.</td></tr>
+      <tr><td>경력</td><td>${j.exp?esc(j.exp):ph('경력 요건')}</td><td>필수 연수는 직무 난이도와 사내 기준으로 확정합니다.</td></tr>
+      <tr><td>어학</td><td>${ph('어학 요건')}</td><td>해외 고객·규제기관 대응 여부에 따라 결정합니다.</td></tr>
+    </tbody></table></div>`));
+  const cert=j.cert||{};
+  d.push(fld('04','자격 요건 (필수 · 우대)',
+    `<div class="tw2"><table class="mini"><thead><tr><th style="width:92px">구분</th><th>항목</th></tr></thead><tbody>
+      <tr><td>필수</td><td>${cert.req&&cert.req.length?cert.req.map(esc).join(' · '):ph('필수 자격 유무')}</td></tr>
+      <tr><td>우대</td><td>${cert.pref&&cert.pref.length?cert.pref.map(esc).join(' · '):ph('우대 자격')}</td></tr>
+      <tr><td>유효기간</td><td>자격은 취득 · 유효기간 · 갱신 조건을 별도 상태로 관리합니다. 법정 선임 자격은 적용 법령으로 확인합니다.</td></tr>
+    </tbody></table></div>`));
+  d.push(fld('05','교육 경로 (Step 5 교육체계 연계)',eduPath(j)));
+  d.push(fld('06','NCS 대응 (ncs.go.kr 확인 2026-10-05~06)',ncsBlock(j)));
+  d.push(fld('07','기업 고유 역량',
+    `<p>NCS로 대응되지 않는 시노펙스 고유 기술·제품·공정 역량은 기업 고유 역량으로 별도 관리합니다.</p>
+     <p>${ph('예: 해당 제품군 고유 공정 조건, 고객사 전용 규격 대응 역량')}</p>`));
+  d.push(fld('08','레벨별 요구역량 수준',lvTable(j)));
+  d.push(fld('09','성장경로 (CDP)',
+    `<p>${S.lv} 이후 상위 레벨로 이동하려면 상위 레벨 수행기준을 충족하고, 해당 레벨의 심화 교육과 실무평가를 통과해야 합니다.</p>
+     <p class="hint">승진·직책 부여는 숙련수준과 별도 축입니다. 두 축을 동일시하지 않습니다.</p>`));
+  d.push(`<div class="note"><b>평가 운영 원칙</b> · 목표수준 · 현재수준 · 미평가를 구분하며 미평가를 0점으로 처리하지 않습니다.
+    교육 수료만으로 실무역량 충족을 판정하지 않습니다.</div>`);
+  return head(j,'직무명세서','JOB SPECIFICATION · 직무명세서')+`<div class="doc-body">${d.join('')}</div>`;
+}
+function renderAll(){renderDoc();renderEdu();renderHist()}
+function renderDoc(){
+  const out=$('#out');
+  if(!S.job){out.innerHTML=`<div class="doc"><div class="doc-body"><div class="note">
+    Step 1에서 대분류 직무구분을, Step 2에서 직무를 선택하면 선택한 레벨과 문서 종류에 맞는 표준 Template이 여기에 생성됩니다.
+    상세 데이터가 없는 직무는 같은 양식에 <b>사내 확인 필요</b> 칸으로 출력되어 그대로 확장할 수 있습니다.</div></div></div>`;return}
+  const j=JOBS.find(x=>x.id===S.job);
+  out.innerHTML=`<div class="doc">${S.kind==='jd'?renderJD(j):renderJS(j)}</div>`;
+}
+/* ── Markdown ── */
+function toMd(){
+  if(!S.job)return'';
+  const j=JOBS.find(x=>x.id===S.job),fam=FAMS.find(f=>f.id===j.fam),lv=LV.find(l=>l.k===S.lv),P='(사내 확인 필요)';
+  const L=[`# ${S.kind==='jd'?'직무기술서':'직무명세서'} · ${j.n}`,'',
+   `- 직무 ID: ${j.id}`,`- 직군(대분류): ${fam.id} ${fam.n}`,`- 사업영역: ${BIZ[j.biz].n}`,
+   `- 소속 조직 후보: ${j.org}`,`- 숙련수준: ${lv.k} ${lv.n} (NCS 수준 ${lv.ncs}, 설계 가정)`,
+   `- 근거등급: ${EV[j.ev][0]}`,`- 버전: v0.1 초안 / 2026-10-05 KST`,'',
+   `## 직무 정의`,j.def||P,''];
+  if(S.kind==='jd'){
+    L.push('## 주요 책무');
+    (j.duties||[[P,'-','-']]).forEach(([t,f,o])=>L.push(`- ${t} (빈도 ${f} / 산출물 ${o})`));
+    L.push('','## 입력자료·산출물',...(j.inputs||[P]).map(x=>'- '+x));
+    L.push('','## 사용 시스템·도구',...(j.tools||[P]).map(x=>'- '+x));
+    L.push('','## KPI',...(j.kpis||[[P,'']]).map(([n,u])=>`- ${n} (${u})`));
+    L.push('','## 업무 위험과 통제',...(j.risks||[P]).map(x=>'- '+x));
+    L.push('','## RACI',j.raci||P);
+    L.push('','## 레벨별 수행기준',...LV.map(l=>`- ${l.k} ${l.n}: ${(j.lv&&j.lv[l.k])||LVG[l.k]}`));
+    L.push('','## OJT·실무평가·독립수행 승인',`- 교육 수료만으로 독립수행을 승인하지 않는다. 실무평가 통과 후 승인권자 승인 ${P}`);
+  }else{
+    const subs=(jmap(j.id).c||[]).filter(c=>KSA[c]), src=subs.length;
+    if(src){
+      L.push('## K·S·A (NCS 능력단위 수행준거 원문 기반 자동 생성)');
+      const ag={K:new Map(),S:new Map(),A:new Map()};
+      subs.forEach(sub=>Object.keys(KSA[sub]).sort().forEach(cd=>['K','S','A'].forEach(t=>(KSA[sub][cd][t]||[]).forEach(x=>{if(!ag[t].has(x))ag[t].set(x,[]);ag[t].get(x).push(sub+cd)}))));
+      [['지식(K)','K'],['기술(S)','S'],['태도(A)','A']].forEach(([t,k])=>{L.push(`### ${t}`);[...ag[k].entries()].forEach(([x,c])=>L.push(`- ${x}  [출처 ${c.join(', ')}]`))});
+      L.push('','### 기업 고유 역량 (직무조사 기반)');
+      [['지식(K)',j.K],['기술(S)',j.S],['태도(A)',j.A]].forEach(([t,a])=>{if(a&&a.length){L.push(`- ${t}: ${a.join(' / ')}`)}});
+    }else{
+      L.push('## K·S·A (직무조사 기반 · NCS 수행준거 원문 미수집)');
+      [['지식(K)',j.K],['기술(S)',j.S],['태도(A)',j.A]].forEach(([t,a])=>{L.push(`### ${t}`);(a||[P]).forEach(x=>L.push('- '+x))});
+    }
+    L.push('','## 학력·경력·어학',`- 학력: ${P}`,`- 경력: ${j.exp||P}`,`- 어학: ${P}`);
+    const c=j.cert||{};
+    L.push('','## 자격',`- 필수: ${(c.req&&c.req.join(' · '))||P}`,`- 우대: ${(c.pref&&c.pref.join(' · '))||P}`);
+    L.push('','## 교육 경로 (교육체계 연계, '+S.lv+' 적용)');
+    crsFor(j).filter(c=>inLv(c,lvNum(S.lv))).forEach(c=>L.push(`- [${c.id}] ${c.n} / ${CT[c.t][0]} / ${c.md} ${c.h}h / ${c.ev} ${c.pass} / 인정기간 ${c.vd?c.vd+'개월':'무기한'} / 근거 ${c.basis}`));
+    L.push('- 법정·규제 요구 과정은 적용 법령·대상·주기·예외를 공식 자료로 확인하기 전까지 법정 필수로 확정하지 않는다.');
+    const mp=jmap(j.id);
+    L.push('','## NCS 대응 (ncs.go.kr 확인 2026-10-05~06 KST)',`- 대응 방식: ${MODE[mp.m][0]}`);
+    if(mp.note)L.push(`- 비고: ${mp.note}`);
+    (mp.c||[]).forEach(c=>{const d=NCS[c];L.push(`- ${c} ${d.n} (${d.p})`);d.u.forEach(([k,n,lv])=>L.push(`  - ${k} ${n} / NCS 수준 ${lv||'미확인'}`))});
+    if(!(mp.c||[]).length)L.push('- 연계 세분류 없음');
+    L.push('','## 레벨별 요구역량',...LV.map(l=>`- ${l.k} ${l.n}: ${(j.lv&&j.lv[l.k])||LVG[l.k]}`));
+  }
+  return L.join('\n');
+}
+/* ── init ── */
+let tmr;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tmr);tmr=setTimeout(()=>t.classList.remove('on'),2000)}
+$('#kind').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.kind=b.dataset.kind;renderKind();renderAll()});
+$('#swap').onclick=()=>{S.kind=S.kind==='jd'?'js':'jd';renderKind();renderAll();toast(S.kind==='jd'?'직무기술서로 전환했습니다':'직무명세서로 전환했습니다')};
+async function copy(text,msg){
+  if(!text){toast('먼저 직무를 선택하세요');return}
+  try{await navigator.clipboard.writeText(text);toast(msg);return}catch(e){}
+  const ta=el('textarea');ta.value=text;ta.style.cssText='position:fixed;left:-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');toast(msg)}catch(_){toast('복사가 차단되었습니다. 화면 내용을 직접 선택해 복사하세요')}
+  ta.remove();
+}
+$('#copy').onclick=()=>copy(toMd(),'Markdown을 복사했습니다');
+document.querySelectorAll('.rail-item').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.rail-item').forEach(x=>x.classList.toggle('on',x===b));
+  $('#'+b.dataset.go).scrollIntoView({behavior:'smooth',block:'start'})});
+$('#theme').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const sysDark=matchMedia('(prefers-color-scheme:dark)').matches;
+  const next=cur?(cur==='dark'?'light':'dark'):(sysDark?'light':'dark');
+  document.documentElement.setAttribute('data-theme',next);
+  try{localStorage.setItem('syno-theme',next)}catch(e){}};
+try{const t=localStorage.getItem('syno-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+renderBiz();renderFams();renderJobs();renderLevels();renderKind();
+S.fam='JF-RA';S.job='RA-MED-01';S.lv='L3';
+renderFams();renderJobs();renderAll();
+</script>
